@@ -6,4 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
+export * from "./errorResponse";
+export * from "./festivalGroup";
+export * from "./festivalGroupsPayload";
+export * from "./festivalGroupsPayloadSource";
+export * from "./festivalSummary";
+export * from "./festivalSummaryWaitCountsItem";
 export * from "./healthStatus";

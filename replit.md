@@ -4,6 +4,8 @@
 
 pnpm workspace monorepo using TypeScript. Each package manages its own dependencies.
 
+The project now includes a public Japanese school festival crowd-status site that replaces the Apps Script-hosted public view. Google Forms remain the entry points for registration and updates, while the Replit API reads the linked Google Spreadsheet and serves normalized festival group/crowd data to the web app.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
@@ -15,6 +17,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Festival data source**: Google Sheets public visualization endpoint, cached in the API server for 5 minutes
 
 ## Key Commands
 

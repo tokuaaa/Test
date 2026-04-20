@@ -1,0 +1,293 @@
+const SPREADSHEET_ID = "1W4vJaSM0jlOQcjE-TstUby6v0K1bJeSY3GnSH8BDKhA";
+
+const GROUPS_SHEET = "groups";
+const UPDATES_SHEET = "updates";
+const COMMENTS_SHEET = "comments";
+const CACHE_KEY_GROUPS = "cached_groups_v2";
+const CACHE_TTL_SECONDS = 300;
+const CACHE_LOCK_MS = 1000;
+
+function doGet() {
+  const e = arguments.length > 0 ? arguments[0] : null;
+  const action = e && e.parameter && e.parameter.action ? String(e.parameter.action) : "";
+
+  if (action === "groups") {
+    return createApiResponse_(getGroupsCached(), e);
+  }
+
+  if (action === "refresh") {
+    return createApiResponse_(refreshGroups(), e);
+  }
+
+  if (action === "comment") {
+    const groupName = e && e.parameter ? e.parameter.groupName : "";
+    const text = e && e.parameter ? e.parameter.text : "";
+    return createApiResponse_(addComment(groupName, text), e);
+  }
+
+  const template = HtmlService.createTemplateFromFile("Index");
+  const cached = getCachedPayload_();
+
+  template.initialData = cached ? JSON.stringify(cached.data) : "null";
+  template.initialFetchedAt = cached && cached.fetchedAt ? cached.fetchedAt : "null";
+
+  return template.evaluate()
+    .setTitle("文化祭 混雑システム");
+}
+
+function createApiResponse_(payload, e) {
+  const callback = e && e.parameter ? String(e.parameter.callback || "") : "";
+  const body = JSON.stringify(payload);
+
+  if (callback && /^[A-Za-z_$][0-9A-Za-z_$\.]*$/.test(callback)) {
+    return ContentService.createTextOutput(callback + "(" + body + ");")
+      .setMimeType(ContentService.MimeType.JAVASCRIPT);
+  }
+
+  return ContentService.createTextOutput(body)
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getGroupsCached() {
+  const cached = getCachedPayload_();
+  if (cached) return cached.data;
+
+  const lock = LockService.getScriptLock();
+  const locked = lock.tryLock(CACHE_LOCK_MS);
+  if (locked) {
+    try {
+      const data = buildGroupsData_();
+      putGroupsCache_(data);
+      return data;
+    } finally {
+      lock.releaseLock();
+    }
+  }
+
+  const retry = getCachedPayload_();
+  if (retry) return retry.data;
+
+  const data = buildGroupsData_();
+  putGroupsCache_(data);
+  return data;
+}
+
+function refreshGroups() {
+  const lock = LockService.getScriptLock();
+  const locked = lock.tryLock(CACHE_LOCK_MS);
+  try {
+    const data = buildGroupsData_();
+    putGroupsCache_(data);
+    return data;
+  } finally {
+    if (locked) {
+      lock.releaseLock();
+    }
+  }
+}
+
+function buildGroupsData_() {
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  const gSh = resolveGroupsSheet(ss);
+  if (!gSh) return [];
+
+  const gLast = gSh.getLastRow();
+  if (gLast < 2) return [];
+
+  const gLastCol = gSh.getLastColumn();
+  const headers = getHeaderRow_(gSh);
+
+  const idxTimestamp = findHeaderIndex_(headers, [/タイムスタンプ/, /timestamp/i]);
+  const idxName = findHeaderIndex_(headers, [/団体名/]);
+  const idxDesc = findHeaderIndex_(headers, [/説明/]);
+  const idxLocation = findHeaderIndex_(headers, [/場所/]);
+  const idxHours = findHeaderIndex_(headers, [/営業時間/]);
+  const idxLogo = findHeaderIndex_(headers, [/ロゴ/, /サムネイル/]);
+
+  const hasHeaderMap = idxName >= 0 && idxDesc >= 0 && idxLocation >= 0 && idxHours >= 0;
+
+  const rows = gSh.getRange(2, 1, gLast - 1, gLastCol).getValues();
+  const groupMap = {};
+
+  rows.forEach(r => {
+    const name = hasHeaderMap ? r[idxName] : r[1];
+    if (!name) return;
+
+    const timeMs = hasHeaderMap && idxTimestamp >= 0 ? toTimeMs(r[idxTimestamp]) : null;
+    const existing = groupMap[name];
+
+    if (!existing || (timeMs && (!existing._timeMs || timeMs > existing._timeMs))) {
+      groupMap[name] = {
+        name: String(name).trim(),
+        desc: (hasHeaderMap ? r[idxDesc] : r[2]) || "",
+        location: (hasHeaderMap ? r[idxLocation] : r[3]) || "",
+        hours: (hasHeaderMap ? r[idxHours] : r[4]) || "",
+        logo: (hasHeaderMap ? r[idxLogo] : r[5]) || "",
+        _timeMs: timeMs || null
+      };
+    }
+  });
+
+  const latestUpdate = loadLatestUpdates_(ss);
+
+  const result = [];
+  Object.keys(groupMap).forEach(name => {
+    const base = groupMap[name];
+    const update = latestUpdate[name];
+    const timeMs = update ? update.time : null;
+
+    result.push({
+      name: base.name,
+      desc: base.desc,
+      location: base.location,
+      hours: base.hours,
+      logo: base.logo,
+      wait: update ? update.wait : "未更新",
+      comment: update ? update.comment : "",
+      updatedAgo: timeMs ? Math.floor((Date.now() - timeMs) / 60000) : null,
+      updatedAt: timeMs || null
+    });
+  });
+
+  return result;
+}
+
+function resolveGroupsSheet(ss) {
+  let sheet = ss.getSheetByName(GROUPS_SHEET);
+  if (sheet) return sheet;
+
+  const sheets = ss.getSheets();
+  for (let i = 0; i < sheets.length; i++) {
+    const headers = getHeaderRow_(sheets[i]);
+    if (!headers.length) continue;
+
+    const hasName = findHeaderIndex_(headers, [/団体名/]) >= 0;
+    const hasDesc = findHeaderIndex_(headers, [/説明/]) >= 0;
+    const hasHours = findHeaderIndex_(headers, [/営業時間/]) >= 0;
+
+    if (hasName && hasDesc && hasHours) return sheets[i];
+  }
+  return null;
+}
+
+function findHeaderIndex_(headers, patterns) {
+  for (let i = 0; i < headers.length; i++) {
+    const header = headers[i];
+    for (let j = 0; j < patterns.length; j++) {
+      if (patterns[j].test(header)) return i;
+    }
+  }
+  return -1;
+}
+
+function toTimeMs(value) {
+  if (value instanceof Date) return value.getTime();
+  const timeMs = new Date(value).getTime();
+  return Number.isFinite(timeMs) ? timeMs : null;
+}
+
+function getHeaderRow_(sheet) {
+  const lastCol = sheet.getLastColumn();
+  if (lastCol < 1) return [];
+  return sheet.getRange(1, 1, 1, lastCol).getValues()[0].map(h => String(h || "").trim());
+}
+
+function resolveUpdatesSheet_(ss) {
+  let sheet = ss.getSheetByName(UPDATES_SHEET);
+  if (sheet) return sheet;
+
+  const sheets = ss.getSheets();
+  for (let i = 0; i < sheets.length; i++) {
+    const headers = getHeaderRow_(sheets[i]);
+    if (!headers.length) continue;
+
+    const hasName = findHeaderIndex_(headers, [/団体名/]) >= 0;
+    const hasWait = findHeaderIndex_(headers, [/待ち時間/]) >= 0;
+    const hasTimestamp = findHeaderIndex_(headers, [/タイムスタンプ/, /timestamp/i]) >= 0;
+
+    if (hasName && hasWait && hasTimestamp) return sheets[i];
+  }
+  return null;
+}
+
+function loadLatestUpdates_(ss) {
+  const latestUpdate = {};
+  const uSh = resolveUpdatesSheet_(ss);
+  if (!uSh) return latestUpdate;
+
+  const uLast = uSh.getLastRow();
+  if (uLast < 2) return latestUpdate;
+
+  const uLastCol = uSh.getLastColumn();
+  const headers = getHeaderRow_(uSh);
+  const idxTimestamp = findHeaderIndex_(headers, [/タイムスタンプ/, /timestamp/i]);
+  const idxName = findHeaderIndex_(headers, [/団体名/]);
+  const idxWait = findHeaderIndex_(headers, [/待ち時間/, /wait/i]);
+  const idxComment = findHeaderIndex_(headers, [/コメント/, /comment/i]);
+
+  const hasHeaderMap = idxName >= 0 && idxWait >= 0 && idxTimestamp >= 0;
+
+  const updates = uSh.getRange(2, 1, uLast - 1, uLastCol).getValues();
+  updates.forEach(r => {
+    const groupName = hasHeaderMap ? r[idxName] : r[1];
+    if (!groupName) return;
+
+    const timeMs = hasHeaderMap ? toTimeMs(r[idxTimestamp]) : toTimeMs(r[0]);
+    const prev = latestUpdate[groupName];
+
+    if (!prev || (timeMs && (!prev.time || timeMs > prev.time))) {
+      latestUpdate[groupName] = {
+        wait: hasHeaderMap ? r[idxWait] : r[2],
+        comment: hasHeaderMap && idxComment >= 0 ? r[idxComment] : r[3],
+        time: timeMs
+      };
+    }
+  });
+
+  return latestUpdate;
+}
+
+function addComment(groupName, text) {
+  if (!groupName) return { ok: false, message: "団体名がありません" };
+  if (!text || text.trim() === "") return { ok: false, message: "コメントが空です" };
+
+  const ss = SpreadsheetApp.openById(SPREADSHEET_ID);
+
+  let sh = ss.getSheetByName(COMMENTS_SHEET);
+  if (!sh) {
+    sh = ss.insertSheet(COMMENTS_SHEET);
+    sh.appendRow(["time", "group", "comment"]);
+  }
+
+  sh.appendRow([new Date(), groupName, text]);
+
+  return { ok: true };
+}
+
+function putGroupsCache_(data) {
+  try {
+    const payload = JSON.stringify({ fetchedAt: Date.now(), data: data });
+    const cache = CacheService.getScriptCache();
+    cache.put(CACHE_KEY_GROUPS, payload, CACHE_TTL_SECONDS);
+  } catch (e) {
+    // If payload is too large or any cache error occurs, skip caching.
+  }
+}
+
+function getCachedPayload_() {
+  const cache = CacheService.getScriptCache();
+  const cached = cache.get(CACHE_KEY_GROUPS);
+  if (!cached) return null;
+
+  try {
+    const parsed = JSON.parse(cached);
+    if (Array.isArray(parsed)) return { data: parsed, fetchedAt: null };
+    if (parsed && Array.isArray(parsed.data)) {
+      return { data: parsed.data, fetchedAt: parsed.fetchedAt || null };
+    }
+  } catch (e) {
+    return null;
+  }
+  return null;
+}

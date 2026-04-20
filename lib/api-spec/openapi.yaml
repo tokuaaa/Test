@@ -1,6 +1,5 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
   description: API specification
@@ -10,6 +9,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: festival
+    description: Festival crowd information
 paths:
   /healthz:
     get:
@@ -24,6 +25,44 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /festival/groups:
+    get:
+      operationId: listFestivalGroups
+      tags: [festival]
+      summary: List festival groups
+      description: Returns group profiles merged with the latest crowd updates from Google Sheets.
+      responses:
+        "200":
+          description: Festival groups payload
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FestivalGroupsPayload"
+        "502":
+          description: Google Sheets fetch failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /festival/summary:
+    get:
+      operationId: getFestivalSummary
+      tags: [festival]
+      summary: Get festival crowd summary
+      description: Returns counts and update freshness for the public dashboard.
+      responses:
+        "200":
+          description: Festival summary
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FestivalSummary"
+        "502":
+          description: Google Sheets fetch failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +72,105 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    FestivalGroup:
+      type: object
+      properties:
+        name:
+          type: string
+        desc:
+          type: string
+        location:
+          type: string
+        hours:
+          type: string
+        logo:
+          type: string
+        wait:
+          type: string
+        comment:
+          type: string
+        updatedAgo:
+          type:
+            - integer
+            - "null"
+        updatedAt:
+          type:
+            - integer
+            - "null"
+      required:
+        - name
+        - desc
+        - location
+        - hours
+        - logo
+        - wait
+        - comment
+        - updatedAgo
+        - updatedAt
+    FestivalGroupsPayload:
+      type: object
+      properties:
+        fetchedAt:
+          type: integer
+        groups:
+          type: array
+          items:
+            $ref: "#/components/schemas/FestivalGroup"
+        source:
+          type: object
+          properties:
+            spreadsheetId:
+              type: string
+            registrationFormUrl:
+              type: string
+            updateFormUrl:
+              type: string
+          required:
+            - spreadsheetId
+            - registrationFormUrl
+            - updateFormUrl
+      required:
+        - fetchedAt
+        - groups
+        - source
+    FestivalSummary:
+      type: object
+      properties:
+        fetchedAt:
+          type: integer
+        totalGroups:
+          type: integer
+        updatedGroups:
+          type: integer
+        staleGroups:
+          type: integer
+        waitCounts:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              count:
+                type: integer
+            required:
+              - label
+              - count
+        newestUpdatedAt:
+          type:
+            - integer
+            - "null"
+      required:
+        - fetchedAt
+        - totalGroups
+        - updatedGroups
+        - staleGroups
+        - waitCounts
+        - newestUpdatedAt

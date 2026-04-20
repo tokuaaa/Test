@@ -14,3 +14,47 @@ import * as zod from "zod";
 export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
+
+/**
+ * Returns group profiles merged with the latest crowd updates from Google Sheets.
+ * @summary List festival groups
+ */
+export const ListFestivalGroupsResponse = zod.object({
+  fetchedAt: zod.number(),
+  groups: zod.array(
+    zod.object({
+      name: zod.string(),
+      desc: zod.string(),
+      location: zod.string(),
+      hours: zod.string(),
+      logo: zod.string(),
+      wait: zod.string(),
+      comment: zod.string(),
+      updatedAgo: zod.number().nullable(),
+      updatedAt: zod.number().nullable(),
+    }),
+  ),
+  source: zod.object({
+    spreadsheetId: zod.string(),
+    registrationFormUrl: zod.string(),
+    updateFormUrl: zod.string(),
+  }),
+});
+
+/**
+ * Returns counts and update freshness for the public dashboard.
+ * @summary Get festival crowd summary
+ */
+export const GetFestivalSummaryResponse = zod.object({
+  fetchedAt: zod.number(),
+  totalGroups: zod.number(),
+  updatedGroups: zod.number(),
+  staleGroups: zod.number(),
+  waitCounts: zod.array(
+    zod.object({
+      label: zod.string(),
+      count: zod.number(),
+    }),
+  ),
+  newestUpdatedAt: zod.number().nullable(),
+});

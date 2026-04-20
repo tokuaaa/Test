@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "文化祭 混雑システム"
+version = "1.0.0"
+id = "artifacts/festival-crowd-site"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21825
+
+[services.development]
+run = "pnpm --filter @workspace/festival-crowd-site run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/festival-crowd-site", "run", "build" ]
+publicDir = "artifacts/festival-crowd-site/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21825"
+BASE_PATH = "/"

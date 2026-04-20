@@ -8,3 +8,48 @@
 export interface HealthStatus {
   status: string;
 }
+
+export interface ErrorResponse {
+  error: string;
+}
+
+export interface FestivalGroup {
+  name: string;
+  desc: string;
+  location: string;
+  hours: string;
+  logo: string;
+  wait: string;
+  comment: string;
+  /** @nullable */
+  updatedAgo: number | null;
+  /** @nullable */
+  updatedAt: number | null;
+}
+
+export type FestivalGroupsPayloadSource = {
+  spreadsheetId: string;
+  registrationFormUrl: string;
+  updateFormUrl: string;
+};
+
+export interface FestivalGroupsPayload {
+  fetchedAt: number;
+  groups: FestivalGroup[];
+  source: FestivalGroupsPayloadSource;
+}
+
+export type FestivalSummaryWaitCountsItem = {
+  label: string;
+  count: number;
+};
+
+export interface FestivalSummary {
+  fetchedAt: number;
+  totalGroups: number;
+  updatedGroups: number;
+  staleGroups: number;
+  waitCounts: FestivalSummaryWaitCountsItem[];
+  /** @nullable */
+  newestUpdatedAt: number | null;
+}

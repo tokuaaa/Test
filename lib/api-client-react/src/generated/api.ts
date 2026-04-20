@@ -13,7 +13,12 @@ import type {
   UseQueryResult,
 } from "@tanstack/react-query";
 
-import type { HealthStatus } from "./api.schemas";
+import type {
+  ErrorResponse,
+  FestivalGroupsPayload,
+  FestivalSummary,
+  HealthStatus,
+} from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
 import type { ErrorType } from "../custom-fetch";
@@ -92,6 +97,158 @@ export function useHealthCheck<
   request?: SecondParameter<typeof customFetch>;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns group profiles merged with the latest crowd updates from Google Sheets.
+ * @summary List festival groups
+ */
+export const getListFestivalGroupsUrl = () => {
+  return `/api/festival/groups`;
+};
+
+export const listFestivalGroups = async (
+  options?: RequestInit,
+): Promise<FestivalGroupsPayload> => {
+  return customFetch<FestivalGroupsPayload>(getListFestivalGroupsUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListFestivalGroupsQueryKey = () => {
+  return [`/api/festival/groups`] as const;
+};
+
+export const getListFestivalGroupsQueryOptions = <
+  TData = Awaited<ReturnType<typeof listFestivalGroups>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFestivalGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getListFestivalGroupsQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listFestivalGroups>>
+  > = ({ signal }) => listFestivalGroups({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listFestivalGroups>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListFestivalGroupsQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listFestivalGroups>>
+>;
+export type ListFestivalGroupsQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary List festival groups
+ */
+
+export function useListFestivalGroups<
+  TData = Awaited<ReturnType<typeof listFestivalGroups>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof listFestivalGroups>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListFestivalGroupsQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * Returns counts and update freshness for the public dashboard.
+ * @summary Get festival crowd summary
+ */
+export const getGetFestivalSummaryUrl = () => {
+  return `/api/festival/summary`;
+};
+
+export const getFestivalSummary = async (
+  options?: RequestInit,
+): Promise<FestivalSummary> => {
+  return customFetch<FestivalSummary>(getGetFestivalSummaryUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetFestivalSummaryQueryKey = () => {
+  return [`/api/festival/summary`] as const;
+};
+
+export const getGetFestivalSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFestivalSummary>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetFestivalSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFestivalSummary>>
+  > = ({ signal }) => getFestivalSummary({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFestivalSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFestivalSummary>>
+>;
+export type GetFestivalSummaryQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get festival crowd summary
+ */
+
+export function useGetFestivalSummary<
+  TData = Awaited<ReturnType<typeof getFestivalSummary>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetFestivalSummaryQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;
