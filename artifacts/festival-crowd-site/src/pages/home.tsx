@@ -1,14 +1,96 @@
 import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSummary, getGetFestivalSummaryQueryKey } from "@workspace/api-client-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw } from "lucide-react";
+import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Navigation, Crosshair } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
+
+type MapPoint = {
+  room: string;
+  display: string;
+  floor: string;
+  x: number;
+  y: number;
+  aliases: string[];
+};
+
+type VisitorPosition = {
+  lat: number;
+  lng: number;
+  accuracy: number;
+  updatedAt: number;
+};
+
+const mapPoints: MapPoint[] = [
+  { room: "中1A", display: "中1学年参加", floor: "中学1階", x: 12, y: 25, aliases: ["中1A", "中１A", "中1学年参加"] },
+  { room: "中1B", display: "中1学年参加", floor: "中学1階", x: 22, y: 25, aliases: ["中1B", "中１B", "中1学年参加"] },
+  { room: "中1C", display: "Debating Union", floor: "中学1階", x: 32, y: 25, aliases: ["中1C", "中１C", "Debating Union"] },
+  { room: "中1D", display: "KCC", floor: "中学1階", x: 53, y: 12, aliases: ["中1D", "中１D", "KCC"] },
+  { room: "中1E", display: "KCC", floor: "中学1階", x: 67, y: 12, aliases: ["中1E", "中１E", "KCC"] },
+  { room: "中1F", display: "LASER TAG", floor: "中学1階", x: 82, y: 12, aliases: ["中1F", "中１F", "LASER TAG"] },
+  { room: "中2A", display: "レトロ喫茶まさる", floor: "中学2階", x: 12, y: 35, aliases: ["中2A", "中２A", "レトロ喫茶", "まさる"] },
+  { room: "中2B", display: "レトロ喫茶まさる", floor: "中学2階", x: 24, y: 35, aliases: ["中2B", "中２B", "レトロ喫茶", "まさる"] },
+  { room: "中2C", display: "夏展", floor: "中学2階", x: 36, y: 35, aliases: ["中2C", "中２C", "夏展"] },
+  { room: "中2D", display: "中2学年参加", floor: "中学2階", x: 55, y: 18, aliases: ["中2D", "中２D", "中2学年参加"] },
+  { room: "中2E", display: "神兵衛", floor: "中学2階", x: 69, y: 18, aliases: ["中2E", "中２E", "神兵衛"] },
+  { room: "中2F", display: "神兵衛", floor: "中学2階", x: 83, y: 18, aliases: ["中2F", "中２F", "神兵衛"] },
+  { room: "中3A", display: "浅野小学校", floor: "中学3階", x: 12, y: 35, aliases: ["中3A", "中３A", "浅野小学校"] },
+  { room: "中3B", display: "浅野小学校", floor: "中学3階", x: 24, y: 35, aliases: ["中3B", "中３B", "浅野小学校"] },
+  { room: "中3C", display: "ASET(特撮)", floor: "中学3階", x: 36, y: 35, aliases: ["中3C", "中３C", "ASET", "特撮"] },
+  { room: "中3D", display: "折り紙研究会", floor: "中学3階", x: 55, y: 18, aliases: ["中3D", "中３D", "折り紙研究会"] },
+  { room: "中3E", display: "書道部", floor: "中学3階", x: 69, y: 18, aliases: ["中3E", "中３E", "書道部"] },
+  { room: "中3F", display: "書道部", floor: "中学3階", x: 83, y: 18, aliases: ["中3F", "中３F", "書道部"] },
+  { room: "高一A", display: "生徒会", floor: "高校1階", x: 12, y: 42, aliases: ["高一A", "高1A", "生徒会"] },
+  { room: "高一B", display: "数学同好会", floor: "高校1階", x: 24, y: 42, aliases: ["高一B", "高1B", "数学同好会"] },
+  { room: "高一C", display: "化学部", floor: "高校1階", x: 42, y: 62, aliases: ["高一C", "高1C", "化学部"] },
+  { room: "高一D", display: "お化け屋敷", floor: "高校1階", x: 56, y: 62, aliases: ["高一D", "高1D", "お化け屋敷"] },
+  { room: "高一E", display: "お化け屋敷", floor: "高校1階", x: 70, y: 62, aliases: ["高一E", "高1E", "お化け屋敷"] },
+  { room: "高一F", display: "お化け屋敷", floor: "高校1階", x: 84, y: 62, aliases: ["高一F", "高1F", "お化け屋敷"] },
+  { room: "選択教室1", display: "化学部", floor: "高校1階", x: 44, y: 25, aliases: ["選択教室1", "選択教室１", "化学部"] },
+  { room: "選択教室2", display: "化学部", floor: "高校1階", x: 62, y: 25, aliases: ["選択教室2", "選択教室２", "化学部"] },
+  { room: "高二A", display: "地学部", floor: "高校2階", x: 12, y: 42, aliases: ["高二A", "高2A", "地学部"] },
+  { room: "高二B", display: "地学部", floor: "高校2階", x: 24, y: 42, aliases: ["高二B", "高2B", "地学部"] },
+  { room: "高二C", display: "アサノ大全", floor: "高校2階", x: 42, y: 62, aliases: ["高二C", "高2C", "アサノ大全"] },
+  { room: "高二D", display: "カードゲーム同好会", floor: "高校2階", x: 56, y: 62, aliases: ["高二D", "高2D", "カードゲーム同好会"] },
+  { room: "高二E", display: "BARミヤン", floor: "高校2階", x: 70, y: 62, aliases: ["高二E", "高2E", "BARミヤン"] },
+  { room: "高二F", display: "BARミヤン", floor: "高校2階", x: 84, y: 62, aliases: ["高二F", "高2F", "BARミヤン"] },
+  { room: "選択教室3", display: "地学部プラネタリウム", floor: "高校2階", x: 44, y: 25, aliases: ["選択教室3", "選択教室３", "プラネタリウム", "地学部"] },
+  { room: "選択教室4", display: "棋道部", floor: "高校2階", x: 62, y: 25, aliases: ["選択教室4", "選択教室４", "棋道部"] },
+  { room: "高三A", display: "歴史研究部", floor: "高校3階", x: 12, y: 42, aliases: ["高三A", "高3A", "歴史研究部"] },
+  { room: "高三B", display: "歴史研究部", floor: "高校3階", x: 24, y: 42, aliases: ["高三B", "高3B", "歴史研究部"] },
+  { room: "高三C", display: "鉄道研究部", floor: "高校3階", x: 42, y: 62, aliases: ["高三C", "高3C", "鉄道研究部"] },
+  { room: "高三D", display: "鉄道研究部", floor: "高校3階", x: 56, y: 62, aliases: ["高三D", "高3D", "鉄道研究部"] },
+  { room: "高三E", display: "りすのおうち", floor: "高校3階", x: 70, y: 62, aliases: ["高三E", "高3E", "りすのおうち"] },
+  { room: "高三F", display: "りすのおうち", floor: "高校3階", x: 84, y: 62, aliases: ["高三F", "高3F", "りすのおうち"] },
+  { room: "高三G", display: "登山部", floor: "高校3階", x: 66, y: 25, aliases: ["高三G", "高3G", "登山部"] },
+  { room: "高三H", display: "鉄道研究部", floor: "高校3階", x: 52, y: 25, aliases: ["高三H", "高3H", "鉄道研究部"] },
+  { room: "社会科教室", display: "物理部展", floor: "本館", x: 14, y: 20, aliases: ["社会科教室", "物理部展", "物理部"] },
+  { room: "ICT教室", display: "クイズ研究部", floor: "本館", x: 35, y: 48, aliases: ["ICT教室", "クイズ研究部"] },
+  { room: "中学会議室", display: "PTA厚生部バザー", floor: "本館", x: 63, y: 72, aliases: ["中学会議室", "PTA厚生部バザー", "PTA"] },
+  { room: "演習教室1", display: "賛助会", floor: "本館", x: 82, y: 22, aliases: ["演習教室1", "演習教室１", "賛助会"] },
+  { room: "演習教室2", display: "同窓会", floor: "本館", x: 68, y: 22, aliases: ["演習教室2", "演習教室２", "同窓会"] },
+];
+
+const floors = ["すべて", "中学1階", "中学2階", "中学3階", "高校1階", "高校2階", "高校3階", "本館"];
+
+function normalizeText(value: string) {
+  return value.toLowerCase().replace(/\s/g, "").replace(/[１-９Ａ-Ｚ]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
+}
+
+function findMapPoint(group: { name: string; location: string }) {
+  const target = normalizeText(`${group.name} ${group.location}`);
+  return mapPoints.find((point) =>
+    [point.room, point.display, point.floor, ...point.aliases].some((alias) => {
+      const normalized = normalizeText(alias);
+      return normalized.length > 1 && target.includes(normalized);
+    }),
+  );
+}
 
 export default function Home() {
   const { data: groupsPayload, isLoading: isLoadingGroups, refetch: refetchGroups, isFetching: isFetchingGroups } = useListFestivalGroups({
@@ -21,6 +103,52 @@ export default function Home() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [waitFilter, setWaitFilter] = useState<string>("all");
+  const [selectedFloor, setSelectedFloor] = useState("すべて");
+  const [visitorPosition, setVisitorPosition] = useState<VisitorPosition | null>(null);
+  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [locationError, setLocationError] = useState("");
+
+  const requestVisitorPosition = useCallback(() => {
+    if (!("geolocation" in navigator)) {
+      setLocationStatus("error");
+      setLocationError("この端末では位置情報を取得できません。");
+      return;
+    }
+
+    setLocationStatus("loading");
+    setLocationError("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        setVisitorPosition({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+          accuracy: position.coords.accuracy,
+          updatedAt: Date.now(),
+        });
+        setLocationStatus("ready");
+      },
+      (error) => {
+        setLocationStatus("error");
+        if (error.code === error.PERMISSION_DENIED) {
+          setLocationError("位置情報の許可がありません。ブラウザの設定から許可してください。");
+        } else if (error.code === error.TIMEOUT) {
+          setLocationError("位置情報の取得がタイムアウトしました。もう一度お試しください。");
+        } else {
+          setLocationError("位置情報を取得できませんでした。");
+        }
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10_000,
+        maximumAge: 0,
+      },
+    );
+  }, []);
+
+  useEffect(() => {
+    requestVisitorPosition();
+  }, [requestVisitorPosition]);
 
   const filteredGroups = useMemo(() => {
     if (!groupsPayload?.groups) return [];
@@ -64,6 +192,22 @@ export default function Home() {
     }
   };
 
+  const visibleMapGroups = useMemo(() => {
+    return filteredGroups
+      .map((group) => ({ group, point: findMapPoint(group) }))
+      .filter((item): item is { group: typeof filteredGroups[number]; point: MapPoint } => Boolean(item.point))
+      .filter((item) => selectedFloor === "すべて" || item.point.floor === selectedFloor);
+  }, [filteredGroups, selectedFloor]);
+
+  const visibleReferencePoints = useMemo(() => {
+    return mapPoints.filter((point) => selectedFloor === "すべて" || point.floor === selectedFloor);
+  }, [selectedFloor]);
+
+  const handleRefresh = () => {
+    refetchGroups();
+    requestVisitorPosition();
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-background pb-12">
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
@@ -77,11 +221,10 @@ export default function Home() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={() => refetchGroups()} 
-            disabled={isFetchingGroups}
-            className={isFetchingGroups ? "animate-spin" : ""}
+            onClick={handleRefresh}
+            disabled={isFetchingGroups || locationStatus === "loading"}
           >
-            <RefreshCw className="h-5 w-5" />
+            <RefreshCw className={`h-5 w-5 ${isFetchingGroups || locationStatus === "loading" ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </header>
@@ -144,6 +287,109 @@ export default function Home() {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+          </div>
+        </section>
+
+        <section className="bg-card rounded-2xl border shadow-sm overflow-hidden">
+          <div className="p-5 border-b bg-muted/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold flex items-center gap-2">
+                <MapPin className="h-5 w-5 text-primary" />
+                校内マップ
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                PDFの教室情報をもとに団体の位置を表示します。ページ表示時と更新時に現在地の座標も取得します。
+              </p>
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+                <SelectTrigger className="bg-background sm:w-40">
+                  <SelectValue placeholder="階を選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {floors.map((floor) => (
+                    <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button onClick={requestVisitorPosition} disabled={locationStatus === "loading"} className="gap-2">
+                <Crosshair className={`h-4 w-4 ${locationStatus === "loading" ? "animate-pulse" : ""}`} />
+                現在地を更新
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-5 grid lg:grid-cols-[1fr_280px] gap-5">
+            <div className="relative h-[420px] rounded-xl border bg-gradient-to-br from-amber-50 via-white to-rose-50 overflow-hidden">
+              <div className="absolute inset-x-8 top-1/2 h-12 -translate-y-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
+              <div className="absolute left-1/2 inset-y-8 w-12 -translate-x-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
+              {visibleReferencePoints.map((point) => {
+                const matched = visibleMapGroups.find((item) => item.point.room === point.room || item.point.display === point.display);
+                return (
+                  <div
+                    key={`${point.floor}-${point.room}-${point.x}-${point.y}`}
+                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border px-2.5 py-2 text-[11px] leading-tight shadow-sm transition-all hover:scale-105 ${
+                      matched ? "bg-primary text-white border-primary z-20" : "bg-white/90 text-slate-700 border-slate-200 z-10"
+                    }`}
+                    style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                    title={`${point.floor} ${point.room} ${point.display}`}
+                  >
+                    <div className="font-bold whitespace-nowrap">{point.room}</div>
+                    <div className="max-w-24 truncate opacity-90">{matched?.group.name ?? point.display}</div>
+                  </div>
+                );
+              })}
+              <div className="absolute left-4 bottom-4 rounded-full bg-white/90 border px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                表示中: {visibleMapGroups.length}団体 / 基準点 {visibleReferencePoints.length}件
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <Card className="border-primary/20 bg-primary/5">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Navigation className="h-4 w-4 text-primary" />
+                    来場者の取得座標
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  {locationStatus === "loading" && <p className="text-muted-foreground">位置情報を取得中です。</p>}
+                  {visitorPosition && (
+                    <div className="space-y-1">
+                      <p>緯度: <span className="font-mono">{visitorPosition.lat.toFixed(6)}</span></p>
+                      <p>経度: <span className="font-mono">{visitorPosition.lng.toFixed(6)}</span></p>
+                      <p>精度: 約{Math.round(visitorPosition.accuracy)}m</p>
+                      <p className="text-xs text-muted-foreground">
+                        取得時刻: {new Date(visitorPosition.updatedAt).toLocaleTimeString("ja-JP")}
+                      </p>
+                    </div>
+                  )}
+                  {locationStatus === "error" && (
+                    <p className="text-destructive leading-relaxed">{locationError}</p>
+                  )}
+                  {locationStatus === "idle" && <p className="text-muted-foreground">位置情報はまだ取得していません。</p>}
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base">マップに紐づいた団体</CardTitle>
+                  <CardDescription>検索・混雑フィルターと連動します。</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-2 max-h-64 overflow-auto pr-1">
+                  {visibleMapGroups.length > 0 ? visibleMapGroups.map(({ group, point }) => (
+                    <div key={`${group.name}-${point.room}`} className="rounded-lg border bg-background p-3 text-sm">
+                      <div className="font-semibold">{group.name}</div>
+                      <div className="text-xs text-muted-foreground mt-1">{point.floor}・{point.room} / x:{point.x}, y:{point.y}</div>
+                    </div>
+                  )) : (
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      現在の検索条件に一致する団体、またはマップ座標に紐づく団体がありません。
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           </div>
         </section>

@@ -6,6 +6,8 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 The project now includes a public Japanese school festival crowd-status site that replaces the Apps Script-hosted public view. Google Forms remain the entry points for registration and updates, while the Replit API reads the linked Google Spreadsheet and serves normalized festival group/crowd data to the web app.
 
+The public site includes a school map feature based on the provided floor-map PDF data. It places organizations on fixed classroom coordinates and requests the visitor's browser geolocation on page load and when the refresh/current-location buttons are pressed.
+
 ## Stack
 
 - **Monorepo tool**: pnpm workspaces
