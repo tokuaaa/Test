@@ -107,6 +107,7 @@ export default function Home() {
   const [visitorPosition, setVisitorPosition] = useState<VisitorPosition | null>(null);
   const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
   const [locationError, setLocationError] = useState("");
+  const [showSplash, setShowSplash] = useState(true);
 
   const requestVisitorPosition = useCallback(() => {
     if (!("geolocation" in navigator)) {
@@ -149,6 +150,14 @@ export default function Home() {
   useEffect(() => {
     requestVisitorPosition();
   }, [requestVisitorPosition]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setShowSplash(false);
+    }, 1700);
+
+    return () => window.clearTimeout(timer);
+  }, []);
 
   const filteredGroups = useMemo(() => {
     if (!groupsPayload?.groups) return [];
@@ -210,6 +219,16 @@ export default function Home() {
 
   return (
     <div className="min-h-screen flex flex-col bg-background pb-12">
+      {showSplash && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[radial-gradient(circle_at_center,_hsl(40_90%_60%)_0%,_hsl(354_82%_56%)_45%,_hsl(220_50%_15%)_100%)]">
+          <div className="text-center text-white animate-in fade-in zoom-in-95 duration-500">
+            <div className="mx-auto mb-5 flex h-28 w-28 items-center justify-center rounded-[2rem] border border-white/30 bg-white/15 shadow-2xl backdrop-blur-md">
+              <span className="text-4xl font-black tracking-tight">47th</span>
+            </div>
+            <p className="text-sm font-semibold tracking-[0.35em] text-white/80">SCHOOL FESTIVAL</p>
+          </div>
+        </div>
+      )}
       <header className="sticky top-0 z-50 w-full border-b bg-card shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-2">
