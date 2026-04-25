@@ -27,48 +27,48 @@ type VisitorPosition = {
 };
 
 const mapPoints: MapPoint[] = [
-  { room: "中1A", display: "中1学年参加", floor: "中学1階", x: 12, y: 25, aliases: ["中1A", "中１A", "中1学年参加"] },
-  { room: "中1B", display: "中1学年参加", floor: "中学1階", x: 22, y: 25, aliases: ["中1B", "中１B", "中1学年参加"] },
-  { room: "中1C", display: "Debating Union", floor: "中学1階", x: 32, y: 25, aliases: ["中1C", "中１C", "Debating Union"] },
-  { room: "中1D", display: "KCC", floor: "中学1階", x: 53, y: 12, aliases: ["中1D", "中１D", "KCC"] },
-  { room: "中1E", display: "KCC", floor: "中学1階", x: 67, y: 12, aliases: ["中1E", "中１E", "KCC"] },
-  { room: "中1F", display: "LASER TAG", floor: "中学1階", x: 82, y: 12, aliases: ["中1F", "中１F", "LASER TAG"] },
-  { room: "中2A", display: "レトロ喫茶まさる", floor: "中学2階", x: 12, y: 35, aliases: ["中2A", "中２A", "レトロ喫茶", "まさる"] },
-  { room: "中2B", display: "レトロ喫茶まさる", floor: "中学2階", x: 24, y: 35, aliases: ["中2B", "中２B", "レトロ喫茶", "まさる"] },
-  { room: "中2C", display: "夏展", floor: "中学2階", x: 36, y: 35, aliases: ["中2C", "中２C", "夏展"] },
-  { room: "中2D", display: "中2学年参加", floor: "中学2階", x: 55, y: 18, aliases: ["中2D", "中２D", "中2学年参加"] },
-  { room: "中2E", display: "神兵衛", floor: "中学2階", x: 69, y: 18, aliases: ["中2E", "中２E", "神兵衛"] },
-  { room: "中2F", display: "神兵衛", floor: "中学2階", x: 83, y: 18, aliases: ["中2F", "中２F", "神兵衛"] },
-  { room: "中3A", display: "浅野小学校", floor: "中学3階", x: 12, y: 35, aliases: ["中3A", "中３A", "浅野小学校"] },
-  { room: "中3B", display: "浅野小学校", floor: "中学3階", x: 24, y: 35, aliases: ["中3B", "中３B", "浅野小学校"] },
-  { room: "中3C", display: "ASET(特撮)", floor: "中学3階", x: 36, y: 35, aliases: ["中3C", "中３C", "ASET", "特撮"] },
-  { room: "中3D", display: "折り紙研究会", floor: "中学3階", x: 55, y: 18, aliases: ["中3D", "中３D", "折り紙研究会"] },
-  { room: "中3E", display: "書道部", floor: "中学3階", x: 69, y: 18, aliases: ["中3E", "中３E", "書道部"] },
-  { room: "中3F", display: "書道部", floor: "中学3階", x: 83, y: 18, aliases: ["中3F", "中３F", "書道部"] },
-  { room: "高一A", display: "生徒会", floor: "高校1階", x: 12, y: 42, aliases: ["高一A", "高1A", "生徒会"] },
-  { room: "高一B", display: "数学同好会", floor: "高校1階", x: 24, y: 42, aliases: ["高一B", "高1B", "数学同好会"] },
-  { room: "高一C", display: "化学部", floor: "高校1階", x: 42, y: 62, aliases: ["高一C", "高1C", "化学部"] },
-  { room: "高一D", display: "お化け屋敷", floor: "高校1階", x: 56, y: 62, aliases: ["高一D", "高1D", "お化け屋敷"] },
-  { room: "高一E", display: "お化け屋敷", floor: "高校1階", x: 70, y: 62, aliases: ["高一E", "高1E", "お化け屋敷"] },
-  { room: "高一F", display: "お化け屋敷", floor: "高校1階", x: 84, y: 62, aliases: ["高一F", "高1F", "お化け屋敷"] },
-  { room: "選択教室1", display: "化学部", floor: "高校1階", x: 44, y: 25, aliases: ["選択教室1", "選択教室１", "化学部"] },
-  { room: "選択教室2", display: "化学部", floor: "高校1階", x: 62, y: 25, aliases: ["選択教室2", "選択教室２", "化学部"] },
-  { room: "高二A", display: "地学部", floor: "高校2階", x: 12, y: 42, aliases: ["高二A", "高2A", "地学部"] },
-  { room: "高二B", display: "地学部", floor: "高校2階", x: 24, y: 42, aliases: ["高二B", "高2B", "地学部"] },
-  { room: "高二C", display: "アサノ大全", floor: "高校2階", x: 42, y: 62, aliases: ["高二C", "高2C", "アサノ大全"] },
-  { room: "高二D", display: "カードゲーム同好会", floor: "高校2階", x: 56, y: 62, aliases: ["高二D", "高2D", "カードゲーム同好会"] },
-  { room: "高二E", display: "BARミヤン", floor: "高校2階", x: 70, y: 62, aliases: ["高二E", "高2E", "BARミヤン"] },
-  { room: "高二F", display: "BARミヤン", floor: "高校2階", x: 84, y: 62, aliases: ["高二F", "高2F", "BARミヤン"] },
-  { room: "選択教室3", display: "地学部プラネタリウム", floor: "高校2階", x: 44, y: 25, aliases: ["選択教室3", "選択教室３", "プラネタリウム", "地学部"] },
-  { room: "選択教室4", display: "棋道部", floor: "高校2階", x: 62, y: 25, aliases: ["選択教室4", "選択教室４", "棋道部"] },
-  { room: "高三A", display: "歴史研究部", floor: "高校3階", x: 12, y: 42, aliases: ["高三A", "高3A", "歴史研究部"] },
-  { room: "高三B", display: "歴史研究部", floor: "高校3階", x: 24, y: 42, aliases: ["高三B", "高3B", "歴史研究部"] },
-  { room: "高三C", display: "鉄道研究部", floor: "高校3階", x: 42, y: 62, aliases: ["高三C", "高3C", "鉄道研究部"] },
-  { room: "高三D", display: "鉄道研究部", floor: "高校3階", x: 56, y: 62, aliases: ["高三D", "高3D", "鉄道研究部"] },
-  { room: "高三E", display: "りすのおうち", floor: "高校3階", x: 70, y: 62, aliases: ["高三E", "高3E", "りすのおうち"] },
-  { room: "高三F", display: "りすのおうち", floor: "高校3階", x: 84, y: 62, aliases: ["高三F", "高3F", "りすのおうち"] },
-  { room: "高三G", display: "登山部", floor: "高校3階", x: 66, y: 25, aliases: ["高三G", "高3G", "登山部"] },
-  { room: "高三H", display: "鉄道研究部", floor: "高校3階", x: 52, y: 25, aliases: ["高三H", "高3H", "鉄道研究部"] },
+  { room: "中1A", display: "中1学年参加", floor: "中学棟3階", x: 12, y: 25, aliases: ["中1A", "中１A", "中1学年参加"] },
+  { room: "中1B", display: "中1学年参加", floor: "中学棟3階", x: 22, y: 25, aliases: ["中1B", "中１B", "中1学年参加"] },
+  { room: "中1C", display: "Debating Union", floor: "中学棟3階", x: 32, y: 25, aliases: ["中1C", "中１C", "Debating Union"] },
+  { room: "中1D", display: "KCC", floor: "中学棟3階", x: 53, y: 12, aliases: ["中1D", "中１D", "KCC"] },
+  { room: "中1E", display: "KCC", floor: "中学棟3階", x: 67, y: 12, aliases: ["中1E", "中１E", "KCC"] },
+  { room: "中1F", display: "LASER TAG", floor: "中学棟3階", x: 82, y: 12, aliases: ["中1F", "中１F", "LASER TAG"] },
+  { room: "中2A", display: "レトロ喫茶まさる", floor: "中学棟4階", x: 12, y: 35, aliases: ["中2A", "中２A", "レトロ喫茶", "まさる"] },
+  { room: "中2B", display: "レトロ喫茶まさる", floor: "中学棟4階", x: 24, y: 35, aliases: ["中2B", "中２B", "レトロ喫茶", "まさる"] },
+  { room: "中2C", display: "夏展", floor: "中学棟4階", x: 36, y: 35, aliases: ["中2C", "中２C", "夏展"] },
+  { room: "中2D", display: "中2学年参加", floor: "中学棟4階", x: 55, y: 18, aliases: ["中2D", "中２D", "中2学年参加"] },
+  { room: "中2E", display: "神兵衛", floor: "中学棟4階", x: 69, y: 18, aliases: ["中2E", "中２E", "神兵衛"] },
+  { room: "中2F", display: "神兵衛", floor: "中学棟4階", x: 83, y: 18, aliases: ["中2F", "中２F", "神兵衛"] },
+  { room: "中3A", display: "浅野小学校", floor: "中学棟5階", x: 12, y: 35, aliases: ["中3A", "中３A", "浅野小学校"] },
+  { room: "中3B", display: "浅野小学校", floor: "中学棟5階", x: 24, y: 35, aliases: ["中3B", "中３B", "浅野小学校"] },
+  { room: "中3C", display: "ASET(特撮)", floor: "中学棟5階", x: 36, y: 35, aliases: ["中3C", "中３C", "ASET", "特撮"] },
+  { room: "中3D", display: "折り紙研究会", floor: "中学棟5階", x: 55, y: 18, aliases: ["中3D", "中３D", "折り紙研究会"] },
+  { room: "中3E", display: "書道部", floor: "中学棟5階", x: 69, y: 18, aliases: ["中3E", "中３E", "書道部"] },
+  { room: "中3F", display: "書道部", floor: "中学棟5階", x: 83, y: 18, aliases: ["中3F", "中３F", "書道部"] },
+  { room: "高一A", display: "生徒会", floor: "高校棟3階", x: 12, y: 42, aliases: ["高一A", "高1A", "生徒会"] },
+  { room: "高一B", display: "数学同好会", floor: "高校棟3階", x: 24, y: 42, aliases: ["高一B", "高1B", "数学同好会"] },
+  { room: "高一C", display: "化学部", floor: "高校棟3階", x: 42, y: 62, aliases: ["高一C", "高1C", "化学部"] },
+  { room: "高一D", display: "お化け屋敷", floor: "高校棟3階", x: 56, y: 62, aliases: ["高一D", "高1D", "お化け屋敷"] },
+  { room: "高一E", display: "お化け屋敷", floor: "高校棟3階", x: 70, y: 62, aliases: ["高一E", "高1E", "お化け屋敷"] },
+  { room: "高一F", display: "お化け屋敷", floor: "高校棟3階", x: 84, y: 62, aliases: ["高一F", "高1F", "お化け屋敷"] },
+  { room: "選択教室1", display: "化学部", floor: "高校棟3階", x: 44, y: 25, aliases: ["選択教室1", "選択教室１", "化学部"] },
+  { room: "選択教室2", display: "化学部", floor: "高校棟3階", x: 62, y: 25, aliases: ["選択教室2", "選択教室２", "化学部"] },
+  { room: "高二A", display: "地学部", floor: "高校棟4階", x: 12, y: 42, aliases: ["高二A", "高2A", "地学部"] },
+  { room: "高二B", display: "地学部", floor: "高校棟4階", x: 24, y: 42, aliases: ["高二B", "高2B", "地学部"] },
+  { room: "高二C", display: "アサノ大全", floor: "高校棟4階", x: 42, y: 62, aliases: ["高二C", "高2C", "アサノ大全"] },
+  { room: "高二D", display: "カードゲーム同好会", floor: "高校棟4階", x: 56, y: 62, aliases: ["高二D", "高2D", "カードゲーム同好会"] },
+  { room: "高二E", display: "BARミヤン", floor: "高校棟4階", x: 70, y: 62, aliases: ["高二E", "高2E", "BARミヤン"] },
+  { room: "高二F", display: "BARミヤン", floor: "高校棟4階", x: 84, y: 62, aliases: ["高二F", "高2F", "BARミヤン"] },
+  { room: "選択教室3", display: "地学部プラネタリウム", floor: "高校棟4階", x: 44, y: 25, aliases: ["選択教室3", "選択教室３", "プラネタリウム", "地学部"] },
+  { room: "選択教室4", display: "棋道部", floor: "高校棟4階", x: 62, y: 25, aliases: ["選択教室4", "選択教室４", "棋道部"] },
+  { room: "高三A", display: "歴史研究部", floor: "高校棟5階", x: 12, y: 42, aliases: ["高三A", "高3A", "歴史研究部"] },
+  { room: "高三B", display: "歴史研究部", floor: "高校棟5階", x: 24, y: 42, aliases: ["高三B", "高3B", "歴史研究部"] },
+  { room: "高三C", display: "鉄道研究部", floor: "高校棟5階", x: 42, y: 62, aliases: ["高三C", "高3C", "鉄道研究部"] },
+  { room: "高三D", display: "鉄道研究部", floor: "高校棟5階", x: 56, y: 62, aliases: ["高三D", "高3D", "鉄道研究部"] },
+  { room: "高三E", display: "りすのおうち", floor: "高校棟5階", x: 70, y: 62, aliases: ["高三E", "高3E", "りすのおうち"] },
+  { room: "高三F", display: "りすのおうち", floor: "高校棟5階", x: 84, y: 62, aliases: ["高三F", "高3F", "りすのおうち"] },
+  { room: "高三G", display: "登山部", floor: "高校棟5階", x: 66, y: 25, aliases: ["高三G", "高3G", "登山部"] },
+  { room: "高三H", display: "鉄道研究部", floor: "高校棟5階", x: 52, y: 25, aliases: ["高三H", "高3H", "鉄道研究部"] },
   { room: "社会科教室", display: "物理部展", floor: "本館", x: 14, y: 20, aliases: ["社会科教室", "物理部展", "物理部"] },
   { room: "ICT教室", display: "クイズ研究部", floor: "本館", x: 35, y: 48, aliases: ["ICT教室", "クイズ研究部"] },
   { room: "中学会議室", display: "PTA厚生部バザー", floor: "本館", x: 63, y: 72, aliases: ["中学会議室", "PTA厚生部バザー", "PTA"] },
@@ -76,7 +76,61 @@ const mapPoints: MapPoint[] = [
   { room: "演習教室2", display: "同窓会", floor: "本館", x: 68, y: 22, aliases: ["演習教室2", "演習教室２", "同窓会"] },
 ];
 
-const floors = ["すべて", "中学1階", "中学2階", "中学3階", "高校1階", "高校2階", "高校3階", "本館"];
+const floors = [
+  "すべて",
+  "中学棟3階",
+  "中学棟4階",
+  "中学棟5階",
+  "高校棟3階",
+  "高校棟4階",
+  "高校棟5階",
+  "本館",
+];
+
+type Building3D = {
+  id: string;
+  name: string;
+  baseX: number;
+  baseY: number;
+  width: number;
+  depth: number;
+  floors: { name: string; label: string; sub: string; level: number }[];
+  accent: string;
+  edge: string;
+};
+
+const buildings3D: Building3D[] = [
+  {
+    id: "junior",
+    name: "中学棟",
+    baseX: 6,
+    baseY: 30,
+    width: 38,
+    depth: 28,
+    accent: "from-rose-200/95 to-rose-100/90",
+    edge: "border-rose-400",
+    floors: [
+      { name: "中学棟3階", label: "3F", sub: "中1", level: 0 },
+      { name: "中学棟4階", label: "4F", sub: "中2", level: 1 },
+      { name: "中学棟5階", label: "5F", sub: "中3", level: 2 },
+    ],
+  },
+  {
+    id: "senior",
+    name: "高校棟",
+    baseX: 54,
+    baseY: 30,
+    width: 38,
+    depth: 28,
+    accent: "from-amber-200/95 to-amber-100/90",
+    edge: "border-amber-400",
+    floors: [
+      { name: "高校棟3階", label: "3F", sub: "高1", level: 0 },
+      { name: "高校棟4階", label: "4F", sub: "高2", level: 1 },
+      { name: "高校棟5階", label: "5F", sub: "高3", level: 2 },
+    ],
+  },
+];
 
 function normalizeText(value: string) {
   return value.toLowerCase().replace(/\s/g, "").replace(/[１-９Ａ-Ｚ]/g, (s) => String.fromCharCode(s.charCodeAt(0) - 0xfee0));
@@ -340,29 +394,142 @@ export default function Home() {
           </div>
 
           <div className="p-5 grid lg:grid-cols-[1fr_280px] gap-5">
-            <div className="relative h-[420px] rounded-xl border bg-gradient-to-br from-amber-50 via-white to-rose-50 overflow-hidden">
-              <div className="absolute inset-x-8 top-1/2 h-12 -translate-y-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
-              <div className="absolute left-1/2 inset-y-8 w-12 -translate-x-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
-              {visibleReferencePoints.map((point) => {
-                const matched = visibleMapGroups.find((item) => item.point.room === point.room || item.point.display === point.display);
-                return (
+            {selectedFloor === "すべて" ? (
+              <div className="relative h-[520px] rounded-xl border bg-gradient-to-br from-sky-50 via-white to-amber-50 overflow-hidden">
+                <div
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{ perspective: "1600px" }}
+                >
                   <div
-                    key={`${point.floor}-${point.room}-${point.x}-${point.y}`}
-                    className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border px-2.5 py-2 text-[11px] leading-tight shadow-sm transition-all hover:scale-105 ${
-                      matched ? "bg-primary text-white border-primary z-20" : "bg-white/90 text-slate-700 border-slate-200 z-10"
-                    }`}
-                    style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                    title={`${point.floor} ${point.room} ${point.display}`}
+                    className="relative"
+                    style={{
+                      transformStyle: "preserve-3d",
+                      transform: "rotateX(58deg) rotateZ(-28deg)",
+                      width: "78%",
+                      height: "78%",
+                    }}
                   >
-                    <div className="font-bold whitespace-nowrap">{point.room}</div>
-                    <div className="max-w-24 truncate opacity-90">{matched?.group.name ?? point.display}</div>
+                    {/* Ground / 本館 base */}
+                    <div
+                      className="absolute rounded-2xl border-2 border-slate-300 bg-gradient-to-br from-slate-100 to-slate-50 shadow-lg"
+                      style={{
+                        left: "20%",
+                        top: "62%",
+                        width: "60%",
+                        height: "26%",
+                        transform: "translateZ(-4px)",
+                      }}
+                    >
+                      <div className="absolute left-2 top-1.5 text-[10px] font-bold text-slate-500" style={{ transform: "rotateZ(28deg) rotateX(-58deg)" }}>本館</div>
+                      {mapPoints.filter((p) => p.floor === "本館").map((point) => {
+                        const matched = visibleMapGroups.find((item) => item.point.room === point.room);
+                        return (
+                          <div
+                            key={`base-${point.room}`}
+                            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[8px] font-semibold shadow ${
+                              matched ? "bg-primary text-white" : "bg-white/90 text-slate-600 border border-slate-300"
+                            }`}
+                            style={{
+                              left: `${point.x}%`,
+                              top: `${point.y}%`,
+                              transform: `translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg)`,
+                            }}
+                            title={`${point.room} ${point.display}`}
+                          >
+                            {point.room}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {buildings3D.map((building) => (
+                      <div key={building.id}>
+                        {building.floors.map((floor) => {
+                          const floorPoints = mapPoints.filter((p) => p.floor === floor.name);
+                          return (
+                            <div
+                              key={floor.name}
+                              className={`absolute rounded-2xl border-2 ${building.edge} bg-gradient-to-br ${building.accent} shadow-2xl`}
+                              style={{
+                                left: `${building.baseX}%`,
+                                top: `${building.baseY}%`,
+                                width: `${building.width}%`,
+                                height: `${building.depth}%`,
+                                transform: `translateZ(${(floor.level + 1) * 70}px)`,
+                              }}
+                            >
+                              <div
+                                className="absolute -top-1 left-2 rounded-md bg-slate-900/85 text-white text-[10px] font-bold px-1.5 py-0.5 shadow"
+                                style={{ transform: "rotateZ(28deg) rotateX(-58deg)" }}
+                              >
+                                {building.name} {floor.label}・{floor.sub}
+                              </div>
+                              {floorPoints.map((point) => {
+                                const matched = visibleMapGroups.find((item) => item.point.room === point.room);
+                                return (
+                                  <div
+                                    key={`${floor.name}-${point.room}`}
+                                    className={`absolute rounded-md px-1.5 py-0.5 text-[8px] font-semibold shadow whitespace-nowrap ${
+                                      matched ? "bg-primary text-white" : "bg-white/95 text-slate-700 border border-white"
+                                    }`}
+                                    style={{
+                                      left: `${point.x}%`,
+                                      top: `${point.y}%`,
+                                      transform: `translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg)`,
+                                    }}
+                                    title={`${point.room} ${point.display}`}
+                                  >
+                                    {point.room}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
                   </div>
-                );
-              })}
-              <div className="absolute left-4 bottom-4 rounded-full bg-white/90 border px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-                表示中: {visibleMapGroups.length}団体 / 基準点 {visibleReferencePoints.length}件
+                </div>
+                <div className="absolute left-4 top-4 rounded-lg bg-white/95 border px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                  3D 校舎ビュー
+                </div>
+                <div className="absolute right-4 top-4 rounded-lg bg-white/90 border px-2.5 py-1 text-[10px] text-slate-600 shadow-sm space-y-0.5">
+                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-rose-300 border border-rose-400" />中学棟 (3〜5F)</div>
+                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-amber-300 border border-amber-400" />高校棟 (3〜5F)</div>
+                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-slate-200 border border-slate-400" />本館</div>
+                </div>
+                <div className="absolute left-4 bottom-4 rounded-full bg-white/95 border px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                  表示中: {visibleMapGroups.length}団体 / 階層を選ぶと平面図に切り替わります
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative h-[420px] rounded-xl border bg-gradient-to-br from-amber-50 via-white to-rose-50 overflow-hidden">
+                <div className="absolute inset-x-8 top-1/2 h-12 -translate-y-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
+                <div className="absolute left-1/2 inset-y-8 w-12 -translate-x-1/2 rounded-full bg-slate-200/70 border border-slate-300" />
+                <div className="absolute left-4 top-4 rounded-lg bg-white/95 border px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
+                  {selectedFloor} の平面図
+                </div>
+                {visibleReferencePoints.map((point) => {
+                  const matched = visibleMapGroups.find((item) => item.point.room === point.room || item.point.display === point.display);
+                  return (
+                    <div
+                      key={`${point.floor}-${point.room}-${point.x}-${point.y}`}
+                      className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-xl border px-2.5 py-2 text-[11px] leading-tight shadow-sm transition-all hover:scale-105 ${
+                        matched ? "bg-primary text-white border-primary z-20" : "bg-white/90 text-slate-700 border-slate-200 z-10"
+                      }`}
+                      style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                      title={`${point.floor} ${point.room} ${point.display}`}
+                    >
+                      <div className="font-bold whitespace-nowrap">{point.room}</div>
+                      <div className="max-w-24 truncate opacity-90">{matched?.group.name ?? point.display}</div>
+                    </div>
+                  );
+                })}
+                <div className="absolute left-4 bottom-4 rounded-full bg-white/90 border px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
+                  表示中: {visibleMapGroups.length}団体 / 基準点 {visibleReferencePoints.length}件
+                </div>
+              </div>
+            )}
 
             <div className="space-y-4">
               <Card className="border-primary/20 bg-primary/5">
