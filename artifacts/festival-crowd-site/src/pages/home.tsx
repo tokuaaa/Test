@@ -2,7 +2,7 @@ import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSum
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Navigation, Crosshair, Wifi, Calendar, Sparkles } from "lucide-react";
+import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Navigation, Crosshair, Wifi, Calendar, Sparkles, Star } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -242,6 +242,34 @@ export default function Home() {
     updatedAt: number;
   } | null>(null);
   const [now, setNow] = useState<Date>(new Date());
+  const [favorites, setFavorites] = useState<string[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem("festival-favorites");
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+    } catch {
+      return [];
+    }
+  });
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("festival-favorites", JSON.stringify(favorites));
+    } catch {
+      // ignore quota / private mode errors
+    }
+  }, [favorites]);
+
+  const favoriteKey = useCallback((g: { name: string; location: string }) => `${g.name}__${g.location}`, []);
+
+  const toggleFavorite = useCallback(
+    (g: { name: string; location: string }) => {
+      const key = favoriteKey(g);
+      setFavorites((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+    },
+    [favoriteKey],
+  );
 
   const sampleNetworkInfo = useCallback(() => {
     const conn = (navigator as Navigator & {
@@ -353,6 +381,12 @@ export default function Home() {
     
     return filtered;
   }, [groupsPayload?.groups, searchQuery, waitFilter]);
+
+  const favoriteGroups = useMemo(() => {
+    if (!groupsPayload?.groups || favorites.length === 0) return [];
+    const set = new Set(favorites);
+    return groupsPayload.groups.filter((g) => set.has(`${g.name}__${g.location}`));
+  }, [groupsPayload?.groups, favorites]);
 
   const getWaitBadgeColor = (wait: string) => {
     switch (wait) {
@@ -470,6 +504,47 @@ export default function Home() {
             </div>
           ) : null}
         </section>
+
+        {/* Favorites */}
+        {favoriteGroups.length > 0 && (
+          <section className="bg-amber-50 border-2 border-amber-300 rounded-2xl p-5 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold flex items-center gap-2 text-amber-900">
+                <Star className="h-5 w-5 fill-amber-500 text-amber-500" />
+                お気に入り（{favoriteGroups.length}）
+              </h2>
+              <p className="text-xs text-amber-800">★を押すと追加・解除できます</p>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+              {favoriteGroups.map((g) => (
+                <div
+                  key={`fav-${g.name}-${g.location}`}
+                  className="bg-white border border-amber-200 rounded-xl p-3 flex items-start gap-3 hover:shadow-sm transition"
+                >
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onClick={() => toggleFavorite(g)}
+                    className="h-7 w-7 shrink-0 text-amber-500 hover:text-amber-600 hover:bg-amber-100"
+                    aria-label="お気に入りから外す"
+                  >
+                    <Star className="h-4 w-4 fill-current" />
+                  </Button>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-sm leading-tight truncate">{g.name}</p>
+                    <p className="text-[11px] text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <MapPin className="h-3 w-3" />
+                      <span className="truncate">{g.location}</span>
+                    </p>
+                    <Badge className={`mt-1.5 text-[10px] px-2 py-0 h-5 font-medium ${getWaitBadgeColor(g.wait)}`}>
+                      {g.wait || "状況不明"}
+                    </Badge>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Filters */}
         <section className="bg-card p-4 rounded-xl shadow-sm border space-y-4">
@@ -910,22 +985,36 @@ export default function Home() {
             </div>
           ) : filteredGroups.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {filteredGroups.map((group, idx) => (
+              {filteredGroups.map((group, idx) => {
+                const isFav = favorites.includes(favoriteKey(group));
+                return (
                 <Card key={idx} className="overflow-hidden hover:shadow-md transition-all duration-200 border border-border group">
                   <CardHeader className="p-5 pb-4 border-b bg-muted/30">
                     <div className="flex justify-between items-start gap-4">
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <CardTitle className="text-xl font-bold leading-tight group-hover:text-primary transition-colors">{group.name}</CardTitle>
                         <CardDescription className="mt-1.5 flex items-center text-xs text-muted-foreground">
                           <MapPin className="w-3.5 h-3.5 mr-1" />
                           {group.location}
                         </CardDescription>
                       </div>
-                      {group.logo && (
-                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border bg-background">
-                          <img src={group.logo} alt={group.name} className="w-full h-full object-cover" />
-                        </div>
-                      )}
+                      <div className="flex items-start gap-2 shrink-0">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => toggleFavorite(group)}
+                          className={`h-8 w-8 ${isFav ? "text-amber-500 hover:text-amber-600" : "text-muted-foreground hover:text-amber-500"}`}
+                          aria-label={isFav ? "お気に入りから外す" : "お気に入りに追加"}
+                          title={isFav ? "お気に入りから外す" : "お気に入りに追加"}
+                        >
+                          <Star className={`h-5 w-5 ${isFav ? "fill-current" : ""}`} />
+                        </Button>
+                        {group.logo && (
+                          <div className="w-12 h-12 rounded-lg overflow-hidden border bg-background">
+                            <img src={group.logo} alt={group.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent className="p-5 space-y-4">
@@ -954,7 +1043,8 @@ export default function Home() {
                     <span>営業時間: {group.hours || "不明"}</span>
                   </CardFooter>
                 </Card>
-              ))}
+                );
+              })}
             </div>
           ) : (
             <div className="text-center py-20 bg-card rounded-xl border border-dashed">
