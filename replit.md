@@ -6,7 +6,7 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 
 The project now includes a public Japanese school festival crowd-status site that replaces the Apps Script-hosted public view. Google Forms remain the entry points for registration and updates, while the Replit API reads the linked Google Spreadsheet and serves normalized festival group/crowd data to the web app.
 
-The public site includes a school map feature based on the provided floor-map PDF data. It places organizations on fixed classroom coordinates and requests the visitor's browser geolocation on page load and when the refresh/current-location buttons are pressed.
+The public site includes a school map feature based on the provided floor-map PDF data. It places organizations on fixed classroom coordinates and requests the visitor's browser geolocation on page load and when the refresh/current-location buttons are pressed. Floor structure: 中学棟3F=中1, 4F=中2, 5F=中3 / 高校棟3F=高1, 4F=高2, 5F=高3, plus ハンドボールコート, 打越アリーナ, 校庭, その他. Map shows wait-time color dots, an empty-room banner per floor, a 3D stacked-floor view when "すべて" is selected, a Wi-Fi/Network info card (uses Network Information API as a proxy because browsers cannot read SSID/RSSI directly), and an event schedule grid (9–17時, 30-min slots) that highlights currently running events such as the クイズ大会 in 打越アリーナ.
 
 ## Stack
 
