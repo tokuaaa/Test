@@ -26,8 +26,20 @@ if (!basePath) {
   );
 }
 
+// Inject the API base URL into the bundle at build time.
+// Priority: VITE_API_BASE_URL env var > first domain in REPLIT_DOMAINS.
+// This means Replit production builds automatically bake in the correct URL.
+// External deployments (e.g. Vercel) can override via VITE_API_BASE_URL.
+const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
+const apiBase =
+  process.env.VITE_API_BASE_URL ??
+  (replitDomain ? `https://${replitDomain}` : undefined);
+
 export default defineConfig({
   base: basePath,
+  define: apiBase
+    ? { "import.meta.env.VITE_API_BASE_URL": JSON.stringify(apiBase) }
+    : {},
   plugins: [
     react(),
     tailwindcss(),
