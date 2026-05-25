@@ -1,17 +1,11 @@
-  customFetch<HealthStatus>(getHealthCheckUrl(), { ...options, method: "GET" });
-export const getHealthCheckQueryKey = () => [`/api/healthz`] as const;
-export const getHealthCheckQueryOptions = <
-  TData = Awaited<ReturnType<typeof healthCheck>>,
-  TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }) => {
-  const { query, request } = options ?? {};
+  const { query } = options ?? {};
   const queryKey = query?.queryKey ?? getHealthCheckQueryKey();
-  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = ({
-    signal,
-  }) => healthCheck({ signal, ...request });
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof healthCheck>>> = () =>
+    healthCheck();
   return { queryKey, queryFn, ...query } as UseQueryOptions<
     Awaited<ReturnType<typeof healthCheck>>,
     TError,
@@ -27,7 +21,7 @@ export function useHealthCheck<
   TError = ErrorType<unknown>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getHealthCheckQueryOptions(options);
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -64,7 +58,7 @@ export const getListFestivalGroupsQueryOptions = <
   TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof listFestivalGroups>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }) => {
   const { query } = options ?? {};
   const queryKey = query?.queryKey ?? getListFestivalGroupsQueryKey();
@@ -85,7 +79,7 @@ export function useListFestivalGroups<
   TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof listFestivalGroups>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getListFestivalGroupsQueryOptions(options);
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
@@ -126,7 +120,7 @@ export const getGetFestivalSummaryQueryOptions = <
   TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof getFestivalSummary>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }) => {
   const { query } = options ?? {};
   const queryKey = query?.queryKey ?? getGetFestivalSummaryQueryKey();
@@ -147,7 +141,7 @@ export function useGetFestivalSummary<
   TError = ErrorType<ErrorResponse>,
 >(options?: {
   query?: UseQueryOptions<Awaited<ReturnType<typeof getFestivalSummary>>, TError, TData>;
-  request?: SecondParameter<typeof customFetch>;
+  request?: RequestInit;
 }): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetFestivalSummaryQueryOptions(options);
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
