@@ -1,5 +1,5 @@
 import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSummary, getGetFestivalSummaryQueryKey } from "@workspace/api-client-react";
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
 import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Calendar, Sparkles, Star, QrCode } from "lucide-react";
@@ -199,6 +199,28 @@ export default function Home() {
       return [];
     }
   });
+
+  // --- coordinate edit mode ---
+  const [editMode, setEditMode] = useState(false);
+  const [customPositions, setCustomPositions] = useState<Record<string, { x: number; y: number }>>(() => {
+    if (typeof window === "undefined") return {};
+    try {
+      return JSON.parse(window.localStorage.getItem("floormap-positions") ?? "{}");
+    } catch {
+      return {};
+    }
+  });
+  const [draggingRoom, setDraggingRoom] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState(false);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("floormap-positions", JSON.stringify(customPositions));
+    } catch {
+      // ignore
+    }
+  }, [customPositions]);
 
   useEffect(() => {
     try {
@@ -558,16 +580,24 @@ export default function Home() {
                 フロアを選択すると団体一覧が絞り込まれます。教室をタップすると詳細が表示されます。
               </p>
             </div>
-            <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-              <SelectTrigger className="bg-background sm:w-44">
-                <SelectValue placeholder="フロアを選択" />
-              </SelectTrigger>
-              <SelectContent>
-                {floors.map((floor) => (
-                  <SelectItem key={floor} value={floor}>{floor}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                onClick={() => setEditMode((v) => !v)}
+                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${editMode ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-600 border-slate-300 hover:border-amber-400 hover:text-amber-600"}`}
+              >
+                {editMode ? "編集中 ✎" : "座標編集"}
+              </button>
+              <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+                <SelectTrigger className="bg-background sm:w-44">
+                  <SelectValue placeholder="フロアを選択" />
+                </SelectTrigger>
+                <SelectContent>
+                  {floors.map((floor) => (
+                    <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <div className="p-5 space-y-5">
@@ -615,54 +645,133 @@ export default function Home() {
             {selectedFloor !== "すべて" && (() => {
               const floorUrl = `${window.location.origin}${window.location.pathname}?floor=${encodeURIComponent(selectedFloor)}`;
               const imgSrc = `${import.meta.env.BASE_URL}floormap/${encodeURIComponent(selectedFloor)}.png`;
-              const floorOverlays = allMappedGroups.filter((item) => item.point.floor === selectedFloor);
+              const floorOverlays = allMappedGroups
+                .filter((item) => item.point.floor === selectedFloor)
+                .filter((item, idx, arr) => arr.findIndex((a) => a.point.room === item.point.room) === idx);
+
+              const makeDotPointerMove = (room: string) => (e: React.PointerEvent<HTMLDivElement>) => {
+                if (!editMode || draggingRoom !== room || !mapContainerRef.current) return;
+                e.preventDefault();
+                const rect = mapContainerRef.current.getBoundingClientRect();
+                const x = Math.round(Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100)));
+                const y = Math.round(Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100)));
+                setCustomPositions((prev) => ({ ...prev, [room]: { x, y } }));
+              };
+
+              const handleCopy = () => {
+                const output = mapPoints
+                  .filter((p) => p.floor === selectedFloor)
+                  .map((p) => {
+                    const pos = customPositions[p.room] ?? { x: p.x, y: p.y };
+                    return `  { room: "${p.room}", floor: "${p.floor}", x: ${pos.x}, y: ${pos.y} }`;
+                  })
+                  .join(",\n");
+                navigator.clipboard.writeText(`[\n${output}\n]`).then(() => {
+                  setCopyMsg(true);
+                  setTimeout(() => setCopyMsg(false), 2000);
+                });
+              };
+
               return (
                 <div className="space-y-4">
+                  {/* Edit mode banner */}
+                  {editMode && (
+                    <div className="rounded-xl border-2 border-amber-400 bg-amber-50 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-bold text-amber-800">座標編集モード</p>
+                        <p className="text-xs text-amber-700 mt-0.5">ドットをドラッグして位置を調整してください。位置はブラウザに保存されます。</p>
+                      </div>
+                      <div className="flex gap-2 shrink-0">
+                        <button
+                          onClick={() => {
+                            const reset: Record<string, { x: number; y: number }> = { ...customPositions };
+                            mapPoints.filter((p) => p.floor === selectedFloor).forEach((p) => { delete reset[p.room]; });
+                            setCustomPositions(reset);
+                          }}
+                          className="rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100 transition-colors"
+                        >
+                          このフロアをリセット
+                        </button>
+                        <button
+                          onClick={handleCopy}
+                          className="rounded-lg border border-amber-400 bg-amber-500 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 transition-colors"
+                        >
+                          {copyMsg ? "コピー済み ✓" : "座標をコピー"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* QR code row */}
-                  <div className="flex items-start gap-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
-                    <div className="rounded-lg border border-sky-200 bg-white p-2 shadow-sm shrink-0">
-                      <QRCodeSVG value={floorUrl} size={80} level="M" />
+                  {!editMode && (
+                    <div className="flex items-start gap-4 rounded-xl border border-sky-200 bg-sky-50 p-4">
+                      <div className="rounded-lg border border-sky-200 bg-white p-2 shadow-sm shrink-0">
+                        <QRCodeSVG value={floorUrl} size={80} level="M" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-sky-900 flex items-center gap-1.5">
+                          <QrCode className="h-4 w-4 text-sky-500" />
+                          このフロアのQRコード
+                        </p>
+                        <p className="text-xs text-sky-700 mt-1">読み込むと <strong>{selectedFloor}</strong> のマップが直接開きます。</p>
+                        <p className="text-[10px] text-sky-500 mt-1.5 font-mono break-all">{floorUrl}</p>
+                      </div>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-sky-900 flex items-center gap-1.5">
-                        <QrCode className="h-4 w-4 text-sky-500" />
-                        このフロアのQRコード
-                      </p>
-                      <p className="text-xs text-sky-700 mt-1">読み込むと <strong>{selectedFloor}</strong> のマップが直接開きます。</p>
-                      <p className="text-[10px] text-sky-500 mt-1.5 font-mono break-all">{floorUrl}</p>
-                    </div>
-                  </div>
+                  )}
 
                   {/* Floor map image with wait-status overlays */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                    <div className="relative">
+                    <div
+                      ref={mapContainerRef}
+                      className={`relative select-none ${editMode ? "cursor-crosshair" : ""}`}
+                    >
                       <img
                         src={imgSrc}
                         alt={`${selectedFloor} フロアマップ`}
-                        className="w-full h-auto block"
+                        className="w-full h-auto block pointer-events-none"
+                        draggable={false}
                       />
                       {floorOverlays.map((item) => {
+                        const pos = customPositions[item.point.room] ?? { x: item.point.x, y: item.point.y };
                         const visual = getWaitVisual(item.group.wait);
+                        const isDragging = draggingRoom === item.point.room;
                         return (
-                          <button
+                          <div
                             key={item.point.room}
-                            style={{ left: `${item.point.x}%`, top: `${item.point.y}%` }}
-                            className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-0.5 group"
-                            onClick={() => setSelectedGroupInfo({
-                              name: item.group.name,
-                              wait: item.group.wait ?? "不明",
-                              location: item.group.location,
-                              desc: item.group.desc,
-                              room: item.point.room,
-                            })}
+                            style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
+                            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-0.5 ${editMode ? "cursor-grab active:cursor-grabbing" : "cursor-pointer group"} ${isDragging ? "scale-125 z-20" : ""} transition-transform`}
+                            onPointerDown={(e) => {
+                              if (!editMode) return;
+                              e.preventDefault();
+                              e.currentTarget.setPointerCapture(e.pointerId);
+                              setDraggingRoom(item.point.room);
+                            }}
+                            onPointerMove={makeDotPointerMove(item.point.room)}
+                            onPointerUp={() => setDraggingRoom(null)}
+                            onPointerCancel={() => setDraggingRoom(null)}
+                            onClick={() => {
+                              if (editMode) return;
+                              setSelectedGroupInfo({
+                                name: item.group.name,
+                                wait: item.group.wait ?? "不明",
+                                location: item.group.location,
+                                desc: item.group.desc,
+                                room: item.point.room,
+                              });
+                            }}
                           >
-                            <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform`}>
+                            <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center ${editMode ? "" : "group-hover:scale-125"} transition-transform`}>
                               <span className="text-[7px] font-black text-white leading-none select-none">{visual.label.slice(0, 2)}</span>
                             </div>
-                            <span className="text-[8px] font-bold bg-black/70 text-white rounded px-1 py-0.5 leading-tight whitespace-nowrap shadow select-none">
+                            <span className={`text-[8px] font-bold bg-black/70 text-white rounded px-1 py-0.5 leading-tight whitespace-nowrap shadow select-none ${editMode ? "bg-amber-700/80" : ""}`}>
                               {item.point.room}
                             </span>
-                          </button>
+                            {editMode && (
+                              <span className="text-[7px] text-amber-200 bg-black/60 rounded px-0.5 leading-tight select-none">
+                                {pos.x},{pos.y}
+                              </span>
+                            )}
+                          </div>
                         );
                       })}
                     </div>
