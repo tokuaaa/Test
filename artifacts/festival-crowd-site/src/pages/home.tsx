@@ -2,7 +2,7 @@ import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSum
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Wifi, Calendar, Sparkles, Star, QrCode } from "lucide-react";
+import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Calendar, Sparkles, Star, QrCode } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -225,17 +225,9 @@ export default function Home() {
 
   const [searchQuery, setSearchQuery] = useState("");
   const [waitFilter, setWaitFilter] = useState<string>("all");
-  const [selectedFloor, setSelectedFloor] = useState("中学棟3階");
+  const [selectedFloor, setSelectedFloor] = useState("すべて");
   const [selectedGroupInfo, setSelectedGroupInfo] = useState<SelectedGroupInfo | null>(null);
   const [showSplash, setShowSplash] = useState(true);
-  const [networkInfo, setNetworkInfo] = useState<{
-    online: boolean;
-    effectiveType?: string;
-    downlink?: number;
-    rtt?: number;
-    type?: string;
-    updatedAt: number;
-  } | null>(null);
   const [now, setNow] = useState<Date>(new Date());
   const [favorites, setFavorites] = useState<string[]>(() => {
     if (typeof window === "undefined") return [];
@@ -289,40 +281,6 @@ export default function Home() {
     [anonymousIndexMap],
   );
 
-  const sampleNetworkInfo = useCallback(() => {
-    const conn = (navigator as Navigator & {
-      connection?: {
-        effectiveType?: string;
-        downlink?: number;
-        rtt?: number;
-        type?: string;
-      };
-    }).connection;
-    setNetworkInfo({
-      online: navigator.onLine,
-      effectiveType: conn?.effectiveType,
-      downlink: conn?.downlink,
-      rtt: conn?.rtt,
-      type: conn?.type,
-      updatedAt: Date.now(),
-    });
-  }, []);
-
-  useEffect(() => {
-    sampleNetworkInfo();
-    const onChange = () => sampleNetworkInfo();
-    window.addEventListener("online", onChange);
-    window.addEventListener("offline", onChange);
-    const conn = (navigator as Navigator & {
-      connection?: { addEventListener?: (t: string, l: () => void) => void; removeEventListener?: (t: string, l: () => void) => void };
-    }).connection;
-    conn?.addEventListener?.("change", onChange);
-    return () => {
-      window.removeEventListener("online", onChange);
-      window.removeEventListener("offline", onChange);
-      conn?.removeEventListener?.("change", onChange);
-    };
-  }, [sampleNetworkInfo]);
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(new Date()), 60_000);
@@ -743,49 +701,6 @@ export default function Home() {
               <p>QRコードを読み込むと、現在地のフロアを自動で表示する機能を準備中です。</p>
             </div>
 
-            {/* Wi-Fi card */}
-            <Card className="border-sky-300/40 bg-sky-50">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <Wifi className="h-4 w-4 text-sky-600" />
-                  Wi-Fi / ネットワーク状況
-                </CardTitle>
-                <CardDescription className="text-[11px] leading-snug">
-                  回線種別と速度から接続の強さを推定します。
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-1.5 text-sm">
-                {networkInfo ? (
-                  <>
-                    <p>状態: <span className={`font-semibold ${networkInfo.online ? "text-emerald-600" : "text-rose-600"}`}>{networkInfo.online ? "オンライン" : "オフライン"}</span></p>
-                    <p>回線種別: <span className="font-mono">{networkInfo.type ?? networkInfo.effectiveType ?? "不明"}</span></p>
-                    {typeof networkInfo.downlink === "number" && (
-                      <p>速度: <span className="font-mono">{networkInfo.downlink.toFixed(1)} Mbps</span></p>
-                    )}
-                    {typeof networkInfo.rtt === "number" && (
-                      <p>応答時間: <span className="font-mono">{networkInfo.rtt} ms</span></p>
-                    )}
-                    <div className="pt-1">
-                      <p className="text-[11px] text-sky-700 font-semibold">
-                        {(() => {
-                          const eff = networkInfo.effectiveType;
-                          if (!networkInfo.online) return "接続なし";
-                          if (eff === "4g") return "電波: 強い";
-                          if (eff === "3g") return "電波: 中くらい";
-                          if (eff === "2g" || eff === "slow-2g") return "電波: 弱い";
-                          return "電波: 計測できません";
-                        })()}
-                      </p>
-                    </div>
-                    <Button size="sm" variant="outline" onClick={sampleNetworkInfo} className="mt-2 h-7 text-xs gap-1">
-                      <RefreshCw className="h-3 w-3" /> 再測定
-                    </Button>
-                  </>
-                ) : (
-                  <p className="text-muted-foreground text-xs">この端末では取得できません。</p>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </section>
 
