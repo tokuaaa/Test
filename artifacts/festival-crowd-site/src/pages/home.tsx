@@ -615,6 +615,7 @@ export default function Home() {
             {selectedFloor !== "すべて" && (() => {
               const floorUrl = `${window.location.origin}${window.location.pathname}?floor=${encodeURIComponent(selectedFloor)}`;
               const imgSrc = `${import.meta.env.BASE_URL}floormap/${encodeURIComponent(selectedFloor)}.png`;
+              const floorOverlays = allMappedGroups.filter((item) => item.point.floor === selectedFloor);
               return (
                 <div className="space-y-4">
                   {/* QR code row */}
@@ -632,13 +633,54 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Floor map image */}
+                  {/* Floor map image with wait-status overlays */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                    <img
-                      src={imgSrc}
-                      alt={`${selectedFloor} フロアマップ`}
-                      className="w-full h-auto block"
-                    />
+                    <div className="relative">
+                      <img
+                        src={imgSrc}
+                        alt={`${selectedFloor} フロアマップ`}
+                        className="w-full h-auto block"
+                      />
+                      {floorOverlays.map((item) => {
+                        const visual = getWaitVisual(item.group.wait);
+                        return (
+                          <button
+                            key={item.point.room}
+                            style={{ left: `${item.point.x}%`, top: `${item.point.y}%` }}
+                            className="absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-0.5 group"
+                            onClick={() => setSelectedGroupInfo({
+                              name: item.group.name,
+                              wait: item.group.wait ?? "不明",
+                              location: item.group.location,
+                              desc: item.group.desc,
+                              room: item.point.room,
+                            })}
+                          >
+                            <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center group-hover:scale-125 transition-transform`}>
+                              <span className="text-[7px] font-black text-white leading-none select-none">{visual.label.slice(0, 2)}</span>
+                            </div>
+                            <span className="text-[8px] font-bold bg-black/70 text-white rounded px-1 py-0.5 leading-tight whitespace-nowrap shadow select-none">
+                              {item.point.room}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Dot legend */}
+                  <div className="flex flex-wrap gap-x-4 gap-y-1 px-1">
+                    {[
+                      { dot: "bg-emerald-500", label: "空き・待ちなし" },
+                      { dot: "bg-amber-500", label: "少し混雑" },
+                      { dot: "bg-rose-600", label: "混雑・終了" },
+                      { dot: "bg-slate-400", label: "準備中・休止" },
+                    ].map(({ dot, label }) => (
+                      <span key={label} className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <span className={`inline-block w-3 h-3 rounded-full ${dot} shrink-0`} />
+                        {label}
+                      </span>
+                    ))}
                   </div>
                 </div>
               );
