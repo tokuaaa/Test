@@ -2,7 +2,7 @@ import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSum
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Navigation, Crosshair, Wifi, Calendar, Sparkles, Star } from "lucide-react";
+import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Wifi, Calendar, Sparkles, Star, QrCode } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -70,19 +70,20 @@ type MapPoint = {
   aliases: string[];
 };
 
-type VisitorPosition = {
-  lat: number;
-  lng: number;
-  accuracy: number;
-  updatedAt: number;
+type SelectedGroupInfo = {
+  name: string;
+  wait: string;
+  location: string;
+  desc: string;
+  room: string;
 };
 
 const mapPoints: MapPoint[] = [
   { room: "中1A", display: "中1学年参加", floor: "中学棟3階", x: 11, y: 70, aliases: ["中1A", "中１A", "中1学年参加"] },
   { room: "中1B", display: "中1学年参加", floor: "中学棟3階", x: 23, y: 70, aliases: ["中1B", "中１B", "中1学年参加"] },
-  { room: "中1C", display: "Debating Union", floor: "中学棟3階", x: 35, y: 70, aliases: ["中1C", "中１C", "Debating Union"] },
-  { room: "中1D", display: "KCC", floor: "中学棟3階", x: 60, y: 25, aliases: ["中1D", "中１D", "KCC"] },
-  { room: "中1E", display: "KCC", floor: "中学棟3階", x: 73, y: 25, aliases: ["中1E", "中１E", "KCC"] },
+  { room: "中1C", display: "歴史研究部", floor: "中学棟3階", x: 35, y: 70, aliases: ["中1C", "中１C", "歴史研究部"] },
+  { room: "中1D", display: "歴史研究部", floor: "中学棟3階", x: 60, y: 25, aliases: ["中1D", "中１D", "歴史研究部"] },
+  { room: "中1E", display: "歴史研究部", floor: "中学棟3階", x: 73, y: 25, aliases: ["中1E", "中１E", "歴史研究部"] },
   { room: "中1F", display: "LASER TAG", floor: "中学棟3階", x: 86, y: 25, aliases: ["中1F", "中１F", "LASER TAG"] },
   { room: "中2A", display: "レトロ喫茶まさる", floor: "中学棟4階", x: 11, y: 70, aliases: ["中2A", "中２A", "レトロ喫茶", "まさる"] },
   { room: "中2B", display: "レトロ喫茶まさる", floor: "中学棟4階", x: 23, y: 70, aliases: ["中2B", "中２B", "レトロ喫茶", "まさる"] },
@@ -129,70 +130,15 @@ const mapPoints: MapPoint[] = [
 
 const floors = [
   "すべて",
-  "中学棟1階",
-  "中学棟2階",
   "中学棟3階",
   "中学棟4階",
   "中学棟5階",
-  "高校棟1階",
-  "高校棟2階",
   "高校棟3階",
   "高校棟4階",
   "高校棟5階",
-  "ハンドボールコート",
-  "打越アリーナ",
-  "校庭",
   "その他",
 ];
 
-type Building3D = {
-  id: string;
-  name: string;
-  baseX: number;
-  baseY: number;
-  width: number;
-  depth: number;
-  floors: { name: string; label: string; sub: string; level: number }[];
-  accent: string;
-  edge: string;
-};
-
-const buildings3D: Building3D[] = [
-  {
-    id: "junior",
-    name: "中学棟",
-    baseX: 6,
-    baseY: 30,
-    width: 38,
-    depth: 28,
-    accent: "from-rose-200/95 to-rose-100/90",
-    edge: "border-rose-400",
-    floors: [
-      { name: "中学棟1階", label: "1F", sub: "", level: 0 },
-      { name: "中学棟2階", label: "2F", sub: "", level: 1 },
-      { name: "中学棟3階", label: "3F", sub: "中1", level: 2 },
-      { name: "中学棟4階", label: "4F", sub: "中2", level: 3 },
-      { name: "中学棟5階", label: "5F", sub: "中3", level: 4 },
-    ],
-  },
-  {
-    id: "senior",
-    name: "高校棟",
-    baseX: 54,
-    baseY: 30,
-    width: 38,
-    depth: 28,
-    accent: "from-amber-200/95 to-amber-100/90",
-    edge: "border-amber-400",
-    floors: [
-      { name: "高校棟1階", label: "1F", sub: "", level: 0 },
-      { name: "高校棟2階", label: "2F", sub: "", level: 1 },
-      { name: "高校棟3階", label: "3F", sub: "高1", level: 2 },
-      { name: "高校棟4階", label: "4F", sub: "高2", level: 3 },
-      { name: "高校棟5階", label: "5F", sub: "高3", level: 4 },
-    ],
-  },
-];
 
 type ScheduleVenue = "中学棟" | "高校棟" | "校庭" | "打越アリーナ" | "その他";
 
@@ -280,9 +226,7 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [waitFilter, setWaitFilter] = useState<string>("all");
   const [selectedFloor, setSelectedFloor] = useState("中学棟3階");
-  const [visitorPosition, setVisitorPosition] = useState<VisitorPosition | null>(null);
-  const [locationStatus, setLocationStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [locationError, setLocationError] = useState("");
+  const [selectedGroupInfo, setSelectedGroupInfo] = useState<SelectedGroupInfo | null>(null);
   const [showSplash, setShowSplash] = useState(true);
   const [networkInfo, setNetworkInfo] = useState<{
     online: boolean;
@@ -385,74 +329,6 @@ export default function Home() {
     return () => window.clearInterval(id);
   }, []);
 
-  const requestVisitorPosition = useCallback(() => {
-    if (!("geolocation" in navigator)) {
-      setLocationStatus("error");
-      setLocationError("この端末では位置情報を取得できません。");
-      return;
-    }
-
-    setLocationStatus("loading");
-    setLocationError("");
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setVisitorPosition({
-          lat: position.coords.latitude,
-          lng: position.coords.longitude,
-          accuracy: position.coords.accuracy,
-          updatedAt: Date.now(),
-        });
-        setLocationStatus("ready");
-      },
-      (error) => {
-        setLocationStatus("error");
-        if (error.code === error.PERMISSION_DENIED) {
-          setLocationError("位置情報の許可がありません。ブラウザの設定から許可してください。");
-        } else if (error.code === error.TIMEOUT) {
-          setLocationError("位置情報の取得がタイムアウトしました。もう一度お試しください。");
-        } else {
-          setLocationError("位置情報を取得できませんでした。");
-        }
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10_000,
-        maximumAge: 0,
-      },
-    );
-  }, []);
-
-  useEffect(() => {
-    requestVisitorPosition();
-  }, [requestVisitorPosition]);
-
-  // Continuous Wi-Fi + GPS aided tracking. The browser internally fuses GPS, Wi-Fi
-  // access points, and cell towers; watchPosition keeps refining as Wi-Fi
-  // signals stabilize, so accuracy normally improves over a few seconds.
-  useEffect(() => {
-    if (!("geolocation" in navigator)) return;
-    let bestAccuracy = Infinity;
-    const watchId = navigator.geolocation.watchPosition(
-      (pos) => {
-        if (pos.coords.accuracy <= bestAccuracy + 5) {
-          bestAccuracy = Math.min(bestAccuracy, pos.coords.accuracy);
-          setVisitorPosition({
-            lat: pos.coords.latitude,
-            lng: pos.coords.longitude,
-            accuracy: pos.coords.accuracy,
-            updatedAt: Date.now(),
-          });
-          setLocationStatus("ready");
-        }
-      },
-      () => {
-        // silent: keep last known position; manual button still uses requestVisitorPosition
-      },
-      { enableHighAccuracy: true, maximumAge: 5_000, timeout: 30_000 },
-    );
-    return () => navigator.geolocation.clearWatch(watchId);
-  }, []);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -486,8 +362,15 @@ export default function Home() {
       filtered = filtered.filter(g => g.wait === waitFilter);
     }
     
+    if (selectedFloor !== "すべて") {
+      filtered = filtered.filter(g => {
+        const pt = findMapPoint(g);
+        return pt?.floor === selectedFloor;
+      });
+    }
+
     return filtered;
-  }, [groupsPayload?.groups, searchQuery, waitFilter]);
+  }, [groupsPayload?.groups, searchQuery, waitFilter, selectedFloor]);
 
   const favoriteGroups = useMemo(() => {
     if (!groupsPayload?.groups || favorites.length === 0) return [];
@@ -561,7 +444,6 @@ export default function Home() {
 
   const handleRefresh = () => {
     refetchGroups();
-    requestVisitorPosition();
   };
 
   return (
@@ -588,9 +470,9 @@ export default function Home() {
             variant="ghost" 
             size="icon" 
             onClick={handleRefresh}
-            disabled={isFetchingGroups || locationStatus === "loading"}
+            disabled={isFetchingGroups}
           >
-            <RefreshCw className={`h-5 w-5 ${isFetchingGroups || locationStatus === "loading" ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-5 w-5 ${isFetchingGroups ? "animate-spin" : ""}`} />
           </Button>
         </div>
       </header>
@@ -740,363 +622,231 @@ export default function Home() {
         </section>
 
         <section className="bg-card rounded-2xl border shadow-sm overflow-hidden">
-          <div className="p-5 border-b bg-muted/30 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          {/* Header */}
+          <div className="p-5 border-b bg-muted/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-xl font-bold flex items-center gap-2">
                 <MapPin className="h-5 w-5 text-primary" />
-                校内マップ
+                校内マップ・フロア選択
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                PDFの教室情報をもとに団体の位置を表示します。ページ表示時と更新時に現在地の座標も取得します。
+                フロアを選択すると団体一覧が絞り込まれます。教室をタップすると詳細が表示されます。
               </p>
             </div>
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-                <SelectTrigger className="bg-background sm:w-40">
-                  <SelectValue placeholder="階を選択" />
-                </SelectTrigger>
-                <SelectContent>
-                  {floors.map((floor) => (
-                    <SelectItem key={floor} value={floor}>{floor}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={requestVisitorPosition} disabled={locationStatus === "loading"} className="gap-2">
-                <Crosshair className={`h-4 w-4 ${locationStatus === "loading" ? "animate-pulse" : ""}`} />
-                現在地を更新
-              </Button>
-            </div>
+            <Select value={selectedFloor} onValueChange={setSelectedFloor}>
+              <SelectTrigger className="bg-background sm:w-44">
+                <SelectValue placeholder="フロアを選択" />
+              </SelectTrigger>
+              <SelectContent>
+                {floors.map((floor) => (
+                  <SelectItem key={floor} value={floor}>{floor}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="p-5 grid lg:grid-cols-[1fr_280px] gap-5">
-            {selectedFloor === "すべて" ? (
-              <div className="relative h-[520px] rounded-xl border bg-gradient-to-br from-sky-50 via-white to-amber-50 overflow-hidden">
-                <div
-                  className="absolute inset-0 flex items-center justify-center"
-                  style={{ perspective: "1600px" }}
-                >
-                  <div
-                    className="relative"
-                    style={{
-                      transformStyle: "preserve-3d",
-                      transform: "rotateX(58deg) rotateZ(-28deg)",
-                      width: "78%",
-                      height: "78%",
-                    }}
-                  >
-                    {/* Ground / その他 base */}
-                    <div
-                      className="absolute rounded-2xl border-2 border-slate-300 bg-gradient-to-br from-slate-100 to-slate-50 shadow-lg"
-                      style={{
-                        left: "20%",
-                        top: "62%",
-                        width: "60%",
-                        height: "26%",
-                        transform: "translateZ(-4px)",
-                      }}
-                    >
-                      <div className="absolute left-2 top-1.5 text-[10px] font-bold text-slate-500" style={{ transform: "rotateZ(28deg) rotateX(-58deg)" }}>その他</div>
-                      {mapPoints.filter((p) => p.floor === "その他").map((point) => {
-                        const matched = allMappedGroups.find((item) => item.point.room === point.room);
-                        const visual = getWaitVisual(matched?.group.wait);
-                        return (
-                          <div
-                            key={`base-${point.room}`}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 rounded-md px-1.5 py-0.5 text-[8px] font-semibold shadow flex items-center gap-1 ${
-                              matched ? "bg-white text-slate-800 ring-2 " + visual.ring : "bg-white/90 text-slate-600 border border-slate-300"
-                            }`}
-                            style={{
-                              left: `${point.x}%`,
-                              top: `${point.y}%`,
-                              transform: `translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg)`,
-                            }}
-                            title={`${point.room} ${point.display}${matched?.group.wait ? " - " + matched.group.wait : ""}`}
-                          >
-                            {matched && <span className={`inline-block w-1.5 h-1.5 rounded-full ${visual.dot}`} />}
-                            {point.room}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {buildings3D.map((building) => (
-                      <div key={building.id}>
-                        {building.floors.map((floor) => {
-                          const floorPoints = mapPoints.filter((p) => p.floor === floor.name);
-                          const isEmpty = floorPoints.length === 0;
-                          return (
-                            <div
-                              key={floor.name}
-                              className={`absolute rounded-2xl border-2 ${building.edge} bg-gradient-to-br ${building.accent} shadow-2xl ${isEmpty ? "opacity-60" : ""}`}
-                              style={{
-                                left: `${building.baseX}%`,
-                                top: `${building.baseY}%`,
-                                width: `${building.width}%`,
-                                height: `${building.depth}%`,
-                                transform: `translateZ(${(floor.level + 1) * 60}px)`,
-                              }}
-                            >
-                              <div
-                                className="absolute -top-1 left-2 rounded-md bg-slate-900/85 text-white text-[10px] font-bold px-1.5 py-0.5 shadow"
-                                style={{ transform: "rotateZ(28deg) rotateX(-58deg)" }}
-                              >
-                                {building.name} {floor.label}{floor.sub ? `・${floor.sub}` : ""}
-                              </div>
-                              {isEmpty && (
-                                <div
-                                  className="absolute inset-0 flex items-center justify-center text-[9px] text-slate-500 font-medium"
-                                  style={{ transform: "rotateZ(28deg) rotateX(-58deg)" }}
-                                >
-                                  準備中
-                                </div>
-                              )}
-                              {floorPoints.map((point) => {
-                                const matched = allMappedGroups.find((item) => item.point.room === point.room);
-                                const visual = getWaitVisual(matched?.group.wait);
-                                return (
-                                  <div
-                                    key={`${floor.name}-${point.room}`}
-                                    className={`absolute rounded-md px-1.5 py-0.5 text-[8px] font-semibold shadow whitespace-nowrap flex items-center gap-1 ${
-                                      matched ? "bg-white text-slate-800 ring-2 " + visual.ring : "bg-white/95 text-slate-700 border border-white"
-                                    }`}
-                                    style={{
-                                      left: `${point.x}%`,
-                                      top: `${point.y}%`,
-                                      transform: `translate(-50%, -50%) rotateZ(28deg) rotateX(-58deg)`,
-                                    }}
-                                    title={`${point.room} ${point.display}${matched?.group.wait ? " - " + matched.group.wait : ""}`}
-                                  >
-                                    {matched && <span className={`inline-block w-1.5 h-1.5 rounded-full ${visual.dot}`} />}
-                                    {point.room}
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="absolute left-4 top-4 rounded-lg bg-white/95 border px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm">
-                  3D 校舎ビュー
-                </div>
-                <div className="absolute right-4 top-4 rounded-lg bg-white/90 border px-2.5 py-1 text-[10px] text-slate-600 shadow-sm space-y-0.5">
-                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-rose-300 border border-rose-400" />中学棟 (3〜5F)</div>
-                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-amber-300 border border-amber-400" />高校棟 (3〜5F)</div>
-                  <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded bg-slate-200 border border-slate-400" />本館</div>
-                </div>
-                <div className="absolute left-4 bottom-4 rounded-full bg-white/95 border px-3 py-1.5 text-xs text-muted-foreground shadow-sm">
-                  表示中: {visibleMapGroups.length}団体 / 階層を選ぶと平面図に切り替わります
+          <div className="p-5 space-y-5">
+            {/* Empty floor alert */}
+            {emptyOnSelectedFloor.length > 0 && selectedFloor !== "すべて" && (
+              <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3 flex items-start gap-2">
+                <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-bold text-emerald-800">この階に空いている団体があります！</p>
+                  <p className="text-emerald-700 mt-0.5">
+                    {emptyOnSelectedFloor.map((item) => `${item.point.room} ${displayName(item.group)}`).join(" / ")}
+                  </p>
                 </div>
               </div>
-            ) : (
-              <div className="space-y-3">
-                {emptyOnSelectedFloor.length > 0 && (
-                  <div className="rounded-xl border-2 border-emerald-300 bg-emerald-50 px-4 py-3 flex items-start gap-2">
-                    <Sparkles className="h-5 w-5 text-emerald-600 shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <p className="font-bold text-emerald-800">この階に空いている団体があります！</p>
-                      <p className="text-emerald-700 mt-0.5">
-                        {emptyOnSelectedFloor.map((item) => `${item.point.room} ${displayName(item.group)}`).join(" / ")}
-                      </p>
-                    </div>
-                  </div>
-                )}
-                {(() => {
-                  const layout = FLOOR_LAYOUTS[selectedFloor];
-                  return (
-                <div className="relative h-[460px] rounded-xl border-2 border-slate-300 bg-white overflow-hidden">
-                  {/* Outer floor outline like PDF (light blue floor) */}
-                  <div className="absolute inset-3 rounded-lg bg-sky-50/80 border border-sky-200/70" />
-                  {/* Top arrow: 渡り廊下 */}
-                  {layout?.showCorridor && (
-                    <>
-                      <div className="absolute left-1/2 -translate-x-1/2 top-1 text-[9px] text-slate-500 tracking-widest">↑ 渡り廊下</div>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-1 text-[9px] text-slate-500 tracking-widest">↓ 渡り廊下</div>
-                    </>
-                  )}
-                  {/* Floor label - upper left like PDF */}
-                  <div className="absolute left-4 top-4 z-30 flex items-center gap-2">
-                    <span className="inline-block w-1 h-6 bg-sky-500 rounded-full" />
-                    <span className="font-bold text-sm text-slate-800">{layout?.topLabel ?? `${selectedFloor} の平面図`}</span>
-                  </div>
-                  {/* Legend */}
-                  <div className="absolute right-3 top-3 z-30 rounded-lg bg-white/95 border px-2 py-1 text-[10px] text-slate-600 shadow-sm space-y-0.5">
-                    <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-emerald-500" />空き</div>
-                    <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-amber-500" />少し</div>
-                    <div className="flex items-center gap-1.5"><span className="inline-block w-2.5 h-2.5 rounded-full bg-rose-600" />混雑</div>
-                  </div>
+            )}
 
-                  {/* Stairs left */}
-                  {layout?.stairsLeft && (
-                    <div className="absolute -translate-x-1/2 -translate-y-1/2 z-10" style={{ left: `${layout.stairsLeft.x}%`, top: `${layout.stairsLeft.y}%` }}>
-                      <div className="bg-white border-2 border-slate-400 rounded px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 12h3v-3h3v-3h3v-3h3" /></svg>
-                        {layout.stairsLeft.label}
-                      </div>
-                    </div>
-                  )}
-                  {/* Stairs right */}
-                  {layout?.stairsRight && (
-                    <div className="absolute -translate-x-1/2 -translate-y-1/2 z-10" style={{ left: `${layout.stairsRight.x}%`, top: `${layout.stairsRight.y}%` }}>
-                      <div className="bg-white border-2 border-slate-400 rounded px-2 py-1 text-[10px] font-bold text-slate-700 shadow-sm flex items-center gap-1">
-                        {layout.stairsRight.label}
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M2 4h3v3h3v3h3v3h3" /></svg>
-                      </div>
-                    </div>
-                  )}
-                  {/* Elevator */}
-                  {layout?.elevator && (
-                    <div className="absolute -translate-x-1/2 -translate-y-1/2 z-10" style={{ left: `${layout.elevator.x}%`, top: `${layout.elevator.y}%` }}>
-                      <div className="bg-white border-2 border-slate-400 rounded px-1.5 py-1 text-[9px] font-bold text-slate-700 shadow-sm flex flex-col items-center leading-tight">
-                        <svg width="12" height="14" viewBox="0 0 12 14" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M3 4l3-3 3 3M3 10l3 3 3-3" /></svg>
-                        EV
-                      </div>
-                    </div>
-                  )}
-                  {/* Restroom */}
-                  {layout?.restroom && (
-                    <div className="absolute -translate-x-1/2 -translate-y-1/2 z-10" style={{ left: `${layout.restroom.x}%`, top: `${layout.restroom.y}%` }}>
-                      <div className="bg-blue-500 border-2 border-blue-700 rounded px-2 py-1 text-[9px] font-bold text-white shadow-sm flex items-center gap-1">
-                        <svg width="12" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="4" r="2"/><path d="M7 22V12H5l2-6h4l2 6h-2v10zM17 4a2 2 0 100-4 2 2 0 000 4zm-2 18v-7h-2l2-7h4l2 7h-2v7z"/></svg>
-                        WC
-                      </div>
-                    </div>
-                  )}
+            {/* Map placeholder */}
+            <div className="rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 flex flex-col items-center justify-center gap-3 py-12">
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-slate-200/80 text-slate-400">
+                <MapPin className="h-8 w-8" />
+              </div>
+              <div className="text-center">
+                <p className="font-semibold text-slate-600 text-base">
+                  {selectedFloor === "すべて" ? "フロアを選択してください" : `${selectedFloor} のフロアマップ`}
+                </p>
+                <p className="text-xs text-slate-400 mt-1">フロアマップは後程追加予定です</p>
+              </div>
+              {selectedFloor === "すべて" && (
+                <div className="flex flex-wrap gap-2 justify-center mt-1">
+                  {floors.filter(f => f !== "すべて").map(f => (
+                    <button
+                      key={f}
+                      onClick={() => setSelectedFloor(f)}
+                      className="rounded-full border border-slate-300 bg-white px-3 py-1 text-xs font-medium text-slate-700 hover:bg-primary hover:text-white hover:border-primary transition-colors"
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
-                  {visibleReferencePoints.length === 0 && (
-                    <div className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
-                      この階のマップ情報はまだ準備中です
-                    </div>
-                  )}
+            {/* Room card grid for selected floor */}
+            {selectedFloor !== "すべて" && visibleReferencePoints.length > 0 && (
+              <div>
+                <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-1.5">
+                  <MapPin className="h-3.5 w-3.5" />
+                  {selectedFloor} の教室一覧
+                  <span className="text-xs font-normal">（団体がある教室はタップで詳細表示）</span>
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2">
                   {visibleReferencePoints.map((point) => {
                     const matched = allMappedGroups.find((item) => item.point.room === point.room || item.point.display === point.display);
                     const visual = getWaitVisual(matched?.group.wait);
                     return (
-                      <div
-                        key={`${point.floor}-${point.room}-${point.x}-${point.y}`}
-                        className={`absolute -translate-x-1/2 -translate-y-1/2 z-20 rounded-md border-2 text-[11px] leading-tight shadow-sm transition-all hover:scale-105 hover:z-30 ${
-                          matched ? "bg-sky-100 border-sky-400 ring-2 " + visual.ring : "bg-sky-50 border-sky-300"
+                      <button
+                        key={point.room}
+                        onClick={() => {
+                          if (matched) {
+                            setSelectedGroupInfo({
+                              name: matched.group.name,
+                              wait: matched.group.wait ?? "",
+                              location: matched.group.location,
+                              desc: matched.group.desc,
+                              room: point.room,
+                            });
+                          }
+                        }}
+                        disabled={!matched}
+                        className={`rounded-xl border-2 text-left p-3 transition-all text-sm ${
+                          matched
+                            ? `bg-white cursor-pointer hover:shadow-md hover:-translate-y-0.5 ${visual.ring} border-transparent ring-2`
+                            : "bg-slate-50 border-slate-200 opacity-60 cursor-default"
                         }`}
-                        style={{ left: `${point.x}%`, top: `${point.y}%`, minWidth: "62px" }}
-                        title={`${point.floor} ${point.room}${matched?.group.wait ? " - " + matched.group.wait : ""}`}
                       >
-                        <div className="bg-white px-1.5 py-0.5 border-b border-sky-300 rounded-t-sm flex items-center gap-1 justify-center">
-                          {matched && <span className={`inline-block w-2 h-2 rounded-full ${visual.dot}`} />}
-                          <div className="font-bold whitespace-nowrap text-slate-800 text-[11px]">{point.room}</div>
+                        <div className="flex items-center gap-1.5 mb-1">
+                          {matched && <span className={`inline-block w-2.5 h-2.5 rounded-full shrink-0 ${visual.dot}`} />}
+                          <span className="font-bold text-slate-800 text-xs">{point.room}</span>
                         </div>
-                        <div className="px-1.5 py-1 text-center">
-                          <div className="max-w-[80px] truncate text-slate-700 font-semibold">{matched ? displayName(matched.group) : "未割当"}</div>
-                          {matched?.group.wait && (
-                            <div className={`mt-1 inline-block rounded px-1 text-[9px] text-white font-bold ${visual.dot}`}>
-                              {matched.group.wait}
-                            </div>
-                          )}
+                        <div className="text-[11px] text-slate-600 font-medium leading-tight truncate">
+                          {matched ? displayName(matched.group) : point.display}
                         </div>
-                      </div>
+                        {matched?.group.wait && (
+                          <div className={`mt-1.5 inline-block rounded px-1.5 py-0.5 text-[9px] text-white font-bold ${visual.dot}`}>
+                            {matched.group.wait}
+                          </div>
+                        )}
+                      </button>
                     );
                   })}
-                  <div className="absolute right-3 bottom-3 z-30 rounded bg-white/95 border px-2 py-1 text-[10px] text-slate-600 shadow-sm">
-                    {visibleMapGroups.length}団体 / 部屋 {visibleReferencePoints.length}件
-                  </div>
                 </div>
-                  );
-                })()}
               </div>
             )}
 
-            <div className="space-y-4">
-              <Card className="border-primary/20 bg-primary/5">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Navigation className="h-4 w-4 text-primary" />
-                    来場者の取得座標
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  {locationStatus === "loading" && <p className="text-muted-foreground">位置情報を取得中です。</p>}
-                  {visitorPosition && (
-                    <div className="space-y-1">
-                      <p>緯度: <span className="font-mono">{visitorPosition.lat.toFixed(6)}</span></p>
-                      <p>経度: <span className="font-mono">{visitorPosition.lng.toFixed(6)}</span></p>
-                      <p>精度: 約{Math.round(visitorPosition.accuracy)}m</p>
-                      <p className="text-xs text-muted-foreground">
-                        取得時刻: {new Date(visitorPosition.updatedAt).toLocaleTimeString("ja-JP")}
+            {/* QR placeholder note */}
+            <div className="rounded-xl border border-sky-200 bg-sky-50 px-4 py-3 flex items-center gap-3 text-sm text-sky-800">
+              <QrCode className="h-5 w-5 text-sky-500 shrink-0" />
+              <p>QRコードを読み込むと、現在地のフロアを自動で表示する機能を準備中です。</p>
+            </div>
+
+            {/* Wi-Fi card */}
+            <Card className="border-sky-300/40 bg-sky-50">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Wifi className="h-4 w-4 text-sky-600" />
+                  Wi-Fi / ネットワーク状況
+                </CardTitle>
+                <CardDescription className="text-[11px] leading-snug">
+                  回線種別と速度から接続の強さを推定します。
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-1.5 text-sm">
+                {networkInfo ? (
+                  <>
+                    <p>状態: <span className={`font-semibold ${networkInfo.online ? "text-emerald-600" : "text-rose-600"}`}>{networkInfo.online ? "オンライン" : "オフライン"}</span></p>
+                    <p>回線種別: <span className="font-mono">{networkInfo.type ?? networkInfo.effectiveType ?? "不明"}</span></p>
+                    {typeof networkInfo.downlink === "number" && (
+                      <p>速度: <span className="font-mono">{networkInfo.downlink.toFixed(1)} Mbps</span></p>
+                    )}
+                    {typeof networkInfo.rtt === "number" && (
+                      <p>応答時間: <span className="font-mono">{networkInfo.rtt} ms</span></p>
+                    )}
+                    <div className="pt-1">
+                      <p className="text-[11px] text-sky-700 font-semibold">
+                        {(() => {
+                          const eff = networkInfo.effectiveType;
+                          if (!networkInfo.online) return "接続なし";
+                          if (eff === "4g") return "電波: 強い";
+                          if (eff === "3g") return "電波: 中くらい";
+                          if (eff === "2g" || eff === "slow-2g") return "電波: 弱い";
+                          return "電波: 計測できません";
+                        })()}
                       </p>
                     </div>
-                  )}
-                  {locationStatus === "error" && (
-                    <p className="text-destructive leading-relaxed">{locationError}</p>
-                  )}
-                  {locationStatus === "idle" && <p className="text-muted-foreground">位置情報はまだ取得していません。</p>}
-                </CardContent>
-              </Card>
-
-              <Card className="border-sky-300/40 bg-sky-50">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base flex items-center gap-2">
-                    <Wifi className="h-4 w-4 text-sky-600" />
-                    Wi-Fi / ネットワーク
-                  </CardTitle>
-                  <CardDescription className="text-[11px] leading-snug">
-                    ブラウザの制限でSSIDや電波強度は直接読めませんが、位置情報の取得時にOSがWi-Fiの一覧を内部で使うため、屋内でも比較的高い精度で位置が出ます。回線種別と速度から接続の強さを推定します。
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-1.5 text-sm">
-                  {networkInfo ? (
-                    <>
-                      <p>状態: <span className={`font-semibold ${networkInfo.online ? "text-emerald-600" : "text-rose-600"}`}>{networkInfo.online ? "オンライン" : "オフライン"}</span></p>
-                      <p>回線種別: <span className="font-mono">{networkInfo.type ?? networkInfo.effectiveType ?? "不明"}</span></p>
-                      {typeof networkInfo.downlink === "number" && (
-                        <p>速度: <span className="font-mono">{networkInfo.downlink.toFixed(1)} Mbps</span></p>
-                      )}
-                      {typeof networkInfo.rtt === "number" && (
-                        <p>応答時間: <span className="font-mono">{networkInfo.rtt} ms</span></p>
-                      )}
-                      <div className="pt-1">
-                        <p className="text-[11px] text-sky-700 font-semibold">
-                          {(() => {
-                            const eff = networkInfo.effectiveType;
-                            if (!networkInfo.online) return "接続なし";
-                            if (eff === "4g") return "電波: 強い (建物内推定OK)";
-                            if (eff === "3g") return "電波: 中くらい";
-                            if (eff === "2g" || eff === "slow-2g") return "電波: 弱い";
-                            return "電波: 計測できません";
-                          })()}
-                        </p>
-                      </div>
-                      <Button size="sm" variant="outline" onClick={sampleNetworkInfo} className="mt-2 h-7 text-xs gap-1">
-                        <RefreshCw className="h-3 w-3" /> 再測定
-                      </Button>
-                    </>
-                  ) : (
-                    <p className="text-muted-foreground text-xs">この端末では取得できません。</p>
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-base">マップに紐づいた団体</CardTitle>
-                  <CardDescription>検索・混雑フィルターと連動します。</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-2 max-h-64 overflow-auto pr-1">
-                  {visibleMapGroups.length > 0 ? visibleMapGroups.map(({ group, point }) => (
-                    <div key={`${group.name}-${point.room}`} className="rounded-lg border bg-background p-3 text-sm">
-                      <div className="font-semibold">{displayName(group)}</div>
-                      <div className="text-xs text-muted-foreground mt-1">{point.floor}・{point.room}</div>
-                    </div>
-                  )) : (
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      現在の検索条件に一致する団体、またはマップ座標に紐づく団体がありません。
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
+                    <Button size="sm" variant="outline" onClick={sampleNetworkInfo} className="mt-2 h-7 text-xs gap-1">
+                      <RefreshCw className="h-3 w-3" /> 再測定
+                    </Button>
+                  </>
+                ) : (
+                  <p className="text-muted-foreground text-xs">この端末では取得できません。</p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         </section>
+
+        {/* Group detail modal */}
+        {selectedGroupInfo && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm"
+            onClick={() => setSelectedGroupInfo(null)}
+          >
+            <div
+              className="w-full sm:max-w-md bg-card rounded-t-2xl sm:rounded-2xl shadow-2xl overflow-hidden"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal header */}
+              <div className="bg-primary/10 border-b px-5 py-4 flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-1">{selectedGroupInfo.room} · {selectedGroupInfo.location}</p>
+                  <h3 className="text-xl font-bold text-foreground leading-tight">{displayName(selectedGroupInfo)}</h3>
+                </div>
+                <button
+                  onClick={() => setSelectedGroupInfo(null)}
+                  className="rounded-full p-1.5 hover:bg-muted transition-colors text-muted-foreground mt-0.5"
+                  aria-label="閉じる"
+                >
+                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2"><path d="M2 2l12 12M14 2L2 14" /></svg>
+                </button>
+              </div>
+              {/* Modal body */}
+              <div className="px-5 py-4 space-y-4">
+                {selectedGroupInfo.wait && (
+                  <Badge className={`text-sm px-3 py-1 ${getWaitBadgeColor(selectedGroupInfo.wait)}`}>
+                    {selectedGroupInfo.wait}
+                  </Badge>
+                )}
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-line">
+                  {selectedGroupInfo.desc || "説明はまだ登録されていません。"}
+                </p>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <MapPin className="h-3.5 w-3.5" />
+                  <span>{selectedGroupInfo.location}</span>
+                </div>
+              </div>
+              {/* Modal footer */}
+              <div className="px-5 py-3 border-t bg-muted/30 flex justify-between items-center">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => {
+                    const g = { name: selectedGroupInfo.name, location: selectedGroupInfo.location };
+                    toggleFavorite(g);
+                  }}
+                  className={favorites.includes(favoriteKey(selectedGroupInfo)) ? "text-amber-500 border-amber-300" : ""}
+                >
+                  <Star className={`h-4 w-4 mr-1.5 ${favorites.includes(favoriteKey(selectedGroupInfo)) ? "fill-current" : ""}`} />
+                  {favorites.includes(favoriteKey(selectedGroupInfo)) ? "お気に入り済み" : "お気に入りに追加"}
+                </Button>
+                <Button size="sm" onClick={() => setSelectedGroupInfo(null)}>閉じる</Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Schedule */}
         <section className="bg-card rounded-2xl border shadow-sm overflow-hidden">
