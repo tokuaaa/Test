@@ -2,7 +2,7 @@ import { useListFestivalGroups, getListFestivalGroupsQueryKey, useGetFestivalSum
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { ja } from "date-fns/locale";
-import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Calendar, Sparkles, Star, QrCode, X } from "lucide-react";
+import { Clock, MapPin, Search, Filter, AlertCircle, Info, RefreshCw, Calendar, Sparkles, Star, QrCode } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,47 +20,6 @@ function getAnonymousLabel(idx: number): string {
   return `団体${idx + 1}`;
 }
 
-type FloorLayout = {
-  showCorridor: boolean;
-  topLabel: string;
-  stairsLeft?: { x: number; y: number; label: string };
-  stairsRight?: { x: number; y: number; label: string };
-  elevator?: { x: number; y: number };
-  restroom?: { x: number; y: number };
-};
-
-const FLOOR_LAYOUTS: Record<string, FloorLayout> = {
-  "中学棟3階": {
-    showCorridor: true, topLabel: "中学棟 3階",
-    stairsLeft: { x: 4, y: 25, label: "3F" }, stairsRight: { x: 94, y: 25, label: "3F" },
-    elevator: { x: 47, y: 47 }, restroom: { x: 30, y: 47 },
-  },
-  "中学棟4階": {
-    showCorridor: true, topLabel: "中学棟 4階",
-    stairsLeft: { x: 4, y: 25, label: "4F" }, stairsRight: { x: 94, y: 25, label: "4F" },
-    elevator: { x: 47, y: 47 }, restroom: { x: 30, y: 47 },
-  },
-  "中学棟5階": {
-    showCorridor: true, topLabel: "中学棟 5階",
-    stairsLeft: { x: 4, y: 25, label: "5F" }, stairsRight: { x: 94, y: 25, label: "5F" },
-    elevator: { x: 47, y: 47 }, restroom: { x: 30, y: 47 },
-  },
-  "高校棟3階": {
-    showCorridor: true, topLabel: "高校棟 3階",
-    stairsLeft: { x: 4, y: 47, label: "3F" }, stairsRight: { x: 94, y: 47, label: "3F" },
-    elevator: { x: 50, y: 47 }, restroom: { x: 73, y: 47 },
-  },
-  "高校棟4階": {
-    showCorridor: true, topLabel: "高校棟 4階",
-    stairsLeft: { x: 4, y: 47, label: "4F" }, stairsRight: { x: 94, y: 47, label: "4F" },
-    elevator: { x: 50, y: 47 }, restroom: { x: 73, y: 47 },
-  },
-  "高校棟5階": {
-    showCorridor: true, topLabel: "高校棟 5階",
-    stairsLeft: { x: 4, y: 47, label: "5F" }, stairsRight: { x: 94, y: 47, label: "5F" },
-    elevator: { x: 50, y: 47 }, restroom: { x: 73, y: 47 },
-  },
-};
 
 type MapPoint = {
   room: string;
@@ -652,11 +611,10 @@ export default function Home() {
               </div>
             )}
 
-            {/* Single floor: QR code + floor map */}
+            {/* Single floor: QR code + floor map image */}
             {selectedFloor !== "すべて" && (() => {
-              const floorPoints = mapPoints.filter(p => p.floor === selectedFloor);
-              const layout = FLOOR_LAYOUTS[selectedFloor];
               const floorUrl = `${window.location.origin}${window.location.pathname}?floor=${encodeURIComponent(selectedFloor)}`;
+              const imgSrc = `${import.meta.env.BASE_URL}floormap/${encodeURIComponent(selectedFloor)}.png`;
               return (
                 <div className="space-y-4">
                   {/* QR code row */}
@@ -674,73 +632,13 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Floor map */}
+                  {/* Floor map image */}
                   <div className="rounded-xl border border-slate-200 bg-white overflow-hidden">
-                    <div className="bg-slate-50 border-b px-3 py-2 flex items-center gap-2">
-                      <span className="inline-block w-1 h-4 rounded-full bg-primary" />
-                      <span className="text-sm font-bold text-slate-700">{layout?.topLabel ?? selectedFloor}</span>
-                      <span className="text-xs text-slate-400 ml-auto">{floorPoints.length} 教室</span>
-                    </div>
-                    <div className="relative" style={{ height: 260 }}>
-                      {/* Corridor */}
-                      <div
-                        className="absolute bg-slate-100 border-y border-slate-200"
-                        style={{ left: 0, right: 0, top: "38%", height: "14%" }}
-                      />
-                      <span
-                        className="absolute text-[9px] text-slate-400 font-medium leading-none"
-                        style={{ left: "1%", top: "44%" }}
-                      >廊下</span>
-
-                      {/* Stairs left */}
-                      {layout?.stairsLeft && (
-                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${layout.stairsLeft.x}%`, top: "45%" }}>
-                          <div className="bg-slate-200 border border-slate-400 rounded px-1 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">
-                            ▶階段
-                          </div>
-                        </div>
-                      )}
-                      {/* Stairs right */}
-                      {layout?.stairsRight && (
-                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${layout.stairsRight.x}%`, top: "45%" }}>
-                          <div className="bg-slate-200 border border-slate-400 rounded px-1 py-0.5 text-[9px] font-bold text-slate-600 whitespace-nowrap">
-                            階段◀
-                          </div>
-                        </div>
-                      )}
-                      {/* Elevator */}
-                      {layout?.elevator && (
-                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${layout.elevator.x}%`, top: "45%" }}>
-                          <div className="bg-blue-100 border border-blue-300 rounded px-1 py-0.5 text-[9px] font-bold text-blue-700">
-                            EV
-                          </div>
-                        </div>
-                      )}
-                      {/* Restroom */}
-                      {layout?.restroom && (
-                        <div className="absolute -translate-x-1/2 -translate-y-1/2" style={{ left: `${layout.restroom.x}%`, top: "45%" }}>
-                          <div className="bg-blue-500 border border-blue-700 rounded px-1 py-0.5 text-[9px] font-bold text-white">
-                            WC
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Room boxes */}
-                      {floorPoints.map((point) => (
-                        <div
-                          key={point.room}
-                          className="absolute -translate-x-1/2 -translate-y-1/2 z-10 rounded border border-sky-300 bg-sky-50 shadow-sm text-center"
-                          style={{ left: `${point.x}%`, top: `${point.y}%`, minWidth: 54, padding: "3px 6px" }}
-                        >
-                          <div className="text-[10px] font-bold text-slate-700 leading-tight">{point.room}</div>
-                          <div className="text-[8px] text-slate-500 leading-tight truncate" style={{ maxWidth: 64 }}>{point.display}</div>
-                        </div>
-                      ))}
-
-                      {/* North / South label */}
-                      <span className="absolute text-[9px] text-slate-400 font-medium" style={{ right: "1%", top: "15%" }}>北側</span>
-                      <span className="absolute text-[9px] text-slate-400 font-medium" style={{ right: "1%", bottom: "10%" }}>南側</span>
-                    </div>
+                    <img
+                      src={imgSrc}
+                      alt={`${selectedFloor} フロアマップ`}
+                      className="w-full h-auto block"
+                    />
                   </div>
                 </div>
               );
