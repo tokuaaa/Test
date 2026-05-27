@@ -151,13 +151,26 @@ const waitColorMap: Record<string, { dot: string; ring: string; label: string }>
   "休止中": { dot: "bg-slate-400", ring: "ring-slate-300", label: "休" },
 };
 
+function waitMinutesVisual(min: number): { dot: string; ring: string; label: string } {
+  if (min === 0)   return { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き" };
+  if (min <= 15)   return { dot: "bg-amber-500",   ring: "ring-amber-400",   label: `${min}分` };
+  if (min <= 30)   return { dot: "bg-rose-500",    ring: "ring-rose-400",    label: `${min}分` };
+  return              { dot: "bg-rose-700",    ring: "ring-rose-600",    label: "30+" };
+}
+
 function getWaitVisual(wait?: string) {
-  if (!wait) return { dot: "bg-slate-300", ring: "ring-slate-200", label: "?" };
-  return waitColorMap[wait] ?? { dot: "bg-primary", ring: "ring-primary/40", label: "?" };
+  if (!wait || wait === "未更新") return { dot: "bg-slate-300", ring: "ring-slate-200", label: "未" };
+  if (waitColorMap[wait]) return waitColorMap[wait];
+  const min = parseInt(wait, 10);
+  if (!isNaN(min)) return waitMinutesVisual(min);
+  return { dot: "bg-slate-300", ring: "ring-slate-200", label: "?" };
 }
 
 function isEmptyWait(wait?: string) {
-  return wait === "待ちなし" || wait === "空きあり";
+  if (!wait) return false;
+  if (wait === "待ちなし" || wait === "空きあり") return true;
+  const min = parseInt(wait, 10);
+  return !isNaN(min) && min === 0;
 }
 
 function normalizeText(value: string) {
@@ -348,8 +361,16 @@ export default function Home() {
       case "準備中":
       case "休止中":
         return "bg-gray-500 hover:bg-gray-600 text-white border-transparent";
-      default:
-        return "bg-primary hover:bg-primary/90 text-white border-transparent";
+      default: {
+        const min = parseInt(wait, 10);
+        if (!isNaN(min)) {
+          if (min === 0)  return "bg-green-500 hover:bg-green-600 text-white border-transparent";
+          if (min <= 15)  return "bg-yellow-500 hover:bg-yellow-600 text-white border-transparent";
+          if (min <= 30)  return "bg-red-400 hover:bg-red-500 text-white border-transparent";
+          return "bg-red-600 hover:bg-red-700 text-white border-transparent";
+        }
+        return "bg-gray-400 hover:bg-gray-500 text-white border-transparent";
+      }
     }
   };
 
@@ -404,7 +425,7 @@ export default function Home() {
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
               祭
             </div>
-            <h1 className="font-bold text-lg tracking-tight text-foreground">学園祭リアルタイム混雑状況</h1>
+            <h1 className="font-bold text-lg tracking-tight text-foreground">打越祭リアルタイム混雑状況</h1>
           </div>
           <Button 
             variant="ghost" 
@@ -1039,7 +1060,7 @@ export default function Home() {
       <footer className="mt-auto border-t bg-card py-8">
         <div className="container mx-auto px-4 max-w-5xl flex flex-col md:flex-row justify-between items-center gap-4">
           <div className="text-sm text-muted-foreground text-center md:text-left">
-            <p>学園祭リアルタイム混雑状況システム</p>
+            <p>打越祭リアルタイム混雑状況システム</p>
             {groupsPayload?.fetchedAt && (
               <p className="text-xs mt-1 opacity-70">
                 最終データ取得: {new Date(groupsPayload.fetchedAt).toLocaleString('ja-JP')}
