@@ -309,18 +309,8 @@ export default function Home() {
       filtered = filtered.filter(g => g.wait === waitFilter);
     }
     
-    if (selectedFloor !== "すべて") {
-      const selectedFloorNorm = normalizeText(selectedFloor);
-      filtered = filtered.filter(g => {
-        const pt = findMapPoint(g);
-        if (pt) return pt.floor === selectedFloor;
-        // mapPoint が見つからない場合は location 文字列で直接照合
-        return normalizeText(g.location).includes(selectedFloorNorm);
-      });
-    }
-
     return filtered;
-  }, [groupsPayload?.groups, searchQuery, waitFilter, selectedFloor]);
+  }, [groupsPayload?.groups, searchQuery, waitFilter]);
 
   const favoriteGroups = useMemo(() => {
     if (!groupsPayload?.groups || favorites.length === 0) return [];
@@ -580,7 +570,7 @@ export default function Home() {
                 校内マップ・フロア選択
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                フロアを選択すると団体一覧が絞り込まれます。教室をタップすると詳細が表示されます。
+                フロアを選択するとマップとQRコードが表示されます。教室ドットをタップすると詳細が表示されます。
               </p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
