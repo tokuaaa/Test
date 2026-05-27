@@ -6,8 +6,15 @@ import {
   type QueryKey,
 } from "@tanstack/react-query";
 
-(options?: {
-  query?: UseQueryOptions<Awaited<ReturnType<typeof healthCheck>>, TError, TData>;
+export const getHealthCheckQueryOptions = <
+  TData = Awaited<ReturnType<typeof healthCheck>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof healthCheck>>,
+    TError,
+    TData
+  >;
   request?: RequestInit;
 }) => {
   const { query } = options ?? {};
@@ -83,6 +90,7 @@ export const listFestivalGroups =
 
     return {
       fetchedAt: fetchedAt ?? Date.now(),
+
       groups: rawGroups
         .map(normalizeGroup)
         .filter((group) => group.name),
@@ -167,3 +175,126 @@ export function useListFestivalGroups<
   };
 }
 
+export const getGetFestivalSummaryUrl = () =>
+  `${APPS_SCRIPT_WEBAPP_URL}?action=groups`;
+
+export const getFestivalSummary =
+  async (): Promise<FestivalSummary> => {
+    const payload = await listFestivalGroups();
+
+    const waitCounts = new Map<string, number>();
+
+    let newestUpdatedAt: number | null = null;
+
+    payload.groups.forEach((group) => {
+      waitCounts.set(
+        group.wait,
+        (waitCounts.get(group.wait) ?? 0) + 1,
+      );
+
+      if (
+        group.updatedAt &&
+        (!newestUpdatedAt ||
+          group.updatedAt > newestUpdatedAt)
+      ) {
+        newestUpdatedAt = group.updatedAt;
+      }
+    });
+
+    return {
+      fetchedAt: payload.fetchedAt,
+
+      totalGroups: payload.groups.length,
+
+      updatedGroups: payload.groups.filter(
+        (group) => group.updatedAt !== null,
+      ).length,
+
+      staleGroups: payload.groups.filter(
+        (group) =>
+          group.updatedAgo !== null &&
+          group.updatedAgo > 30,
+      ).length,
+
+      waitCounts: Array.from(waitCounts.entries()).map(
+        ([label, count]) => ({
+          label,
+          count,
+        }),
+      ),
+
+      newestUpdatedAt,
+    };
+  };
+
+export const getGetFestivalSummaryQueryKey = () =>
+  [`apps-script`, `festival`, `summary`] as const;
+
+export const getGetFestivalSummaryQueryOptions = <
+  TData = Awaited<ReturnType<typeof getFestivalSummary>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  >;
+
+  request?: RequestInit;
+}) => {
+  const { query } = options ?? {};
+
+  const queryKey =
+    query?.queryKey ?? getGetFestivalSummaryQueryKey();
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getFestivalSummary>>
+  > = () => getFestivalSummary();
+
+  return {
+    queryKey,
+    queryFn,
+    ...query,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetFestivalSummaryQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getFestivalSummary>>
+>;
+
+export type GetFestivalSummaryQueryError =
+  ErrorType<ErrorResponse>;
+
+export function useGetFestivalSummary<
+  TData = Awaited<ReturnType<typeof getFestivalSummary>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getFestivalSummary>>,
+    TError,
+    TData
+  >;
+
+  request?: RequestInit;
+}): UseQueryResult<TData, TError> & {
+  queryKey: QueryKey;
+} {
+  const queryOptions =
+    getGetFestivalSummaryQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<
+    TData,
+    TError
+  > & {
+    queryKey: QueryKey;
+  };
+
+  return {
+    ...query,
+    queryKey: queryOptions.queryKey,
+  };
+}
