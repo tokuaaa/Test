@@ -310,9 +310,12 @@ export default function Home() {
     }
     
     if (selectedFloor !== "すべて") {
+      const selectedFloorNorm = normalizeText(selectedFloor);
       filtered = filtered.filter(g => {
         const pt = findMapPoint(g);
-        return pt?.floor === selectedFloor;
+        if (pt) return pt.floor === selectedFloor;
+        // mapPoint が見つからない場合は location 文字列で直接照合
+        return normalizeText(g.location).includes(selectedFloorNorm);
       });
     }
 
@@ -1033,6 +1036,7 @@ export default function Home() {
                 onClick={() => {
                   setSearchQuery("");
                   setWaitFilter("all");
+                  setSelectedFloor("すべて");
                 }}
               >
                 条件をクリア
