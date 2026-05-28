@@ -138,32 +138,34 @@ const scheduleEvents: ScheduleEvent[] = [
   },
 ];
 
-const waitColorMap: Record<string, { dot: string; ring: string; label: string }> = {
-  "待ちなし": { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き" },
-  "空きあり": { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き" },
-  "少し混雑": { dot: "bg-amber-500", ring: "ring-amber-400", label: "やや" },
-  "10-20分待ち": { dot: "bg-amber-500", ring: "ring-amber-400", label: "10-20" },
-  "混雑": { dot: "bg-rose-600", ring: "ring-rose-500", label: "混雑" },
-  "30分以上待ち": { dot: "bg-rose-600", ring: "ring-rose-500", label: "30+" },
-  "整理券配布終了": { dot: "bg-rose-600", ring: "ring-rose-500", label: "終" },
-  "受付終了": { dot: "bg-slate-400", ring: "ring-slate-300", label: "終" },
-  "準備中": { dot: "bg-slate-400", ring: "ring-slate-300", label: "準" },
-  "休止中": { dot: "bg-slate-400", ring: "ring-slate-300", label: "休" },
+type WaitVisual = { dot: string; ring: string; label: string; hex: string };
+
+const waitColorMap: Record<string, WaitVisual> = {
+  "待ちなし":         { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き",  hex: "#10b981" },
+  "空きあり":         { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き",  hex: "#10b981" },
+  "少し混雑":         { dot: "bg-amber-500",   ring: "ring-amber-400",   label: "やや",  hex: "#f59e0b" },
+  "10-20分待ち":      { dot: "bg-amber-500",   ring: "ring-amber-400",   label: "10-20", hex: "#f59e0b" },
+  "混雑":             { dot: "bg-rose-600",    ring: "ring-rose-500",    label: "混雑",  hex: "#e11d48" },
+  "30分以上待ち":     { dot: "bg-rose-600",    ring: "ring-rose-500",    label: "30+",   hex: "#e11d48" },
+  "整理券配布終了":   { dot: "bg-rose-600",    ring: "ring-rose-500",    label: "終",    hex: "#e11d48" },
+  "受付終了":         { dot: "bg-slate-400",   ring: "ring-slate-300",   label: "終",    hex: "#94a3b8" },
+  "準備中":           { dot: "bg-slate-400",   ring: "ring-slate-300",   label: "準",    hex: "#94a3b8" },
+  "休止中":           { dot: "bg-slate-400",   ring: "ring-slate-300",   label: "休",    hex: "#94a3b8" },
 };
 
-function waitMinutesVisual(min: number): { dot: string; ring: string; label: string } {
-  if (min === 0)   return { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き" };
-  if (min <= 15)   return { dot: "bg-amber-500",   ring: "ring-amber-400",   label: `${min}分` };
-  if (min <= 30)   return { dot: "bg-rose-500",    ring: "ring-rose-400",    label: `${min}分` };
-  return              { dot: "bg-rose-700",    ring: "ring-rose-600",    label: "30+" };
+function waitMinutesVisual(min: number): WaitVisual {
+  if (min === 0)   return { dot: "bg-emerald-500", ring: "ring-emerald-400", label: "空き",    hex: "#10b981" };
+  if (min <= 15)   return { dot: "bg-amber-500",   ring: "ring-amber-400",   label: `${min}分`, hex: "#f59e0b" };
+  if (min <= 30)   return { dot: "bg-rose-500",    ring: "ring-rose-400",    label: `${min}分`, hex: "#f43f5e" };
+  return              { dot: "bg-rose-700",    ring: "ring-rose-600",    label: "30+",      hex: "#be123c" };
 }
 
-function getWaitVisual(wait?: string) {
-  if (!wait || wait === "未更新") return { dot: "bg-slate-300", ring: "ring-slate-200", label: "未" };
+function getWaitVisual(wait?: string): WaitVisual {
+  if (!wait || wait === "未更新") return { dot: "bg-slate-300", ring: "ring-slate-200", label: "未更新", hex: "#cbd5e1" };
   if (waitColorMap[wait]) return waitColorMap[wait];
   const min = parseInt(wait, 10);
   if (!isNaN(min)) return waitMinutesVisual(min);
-  return { dot: "bg-slate-300", ring: "ring-slate-200", label: "?" };
+  return { dot: "bg-slate-300", ring: "ring-slate-200", label: "?", hex: "#cbd5e1" };
 }
 
 function isEmptyWait(wait?: string) {
@@ -747,13 +749,15 @@ export default function Home() {
                       />
                       {floorOverlays.map((item) => {
                         const pos = customPositions[item.point.room] ?? { x: item.point.x, y: item.point.y };
-                        const visual = getWaitVisual(item.group.wait);
+                        const visual = editMode
+                          ? { dot: "bg-amber-500", ring: "ring-amber-400", label: item.group.wait ?? "未更新", hex: "#f59e0b" }
+                          : getWaitVisual(item.group.wait);
                         const isDragging = draggingRoom === item.point.room;
                         return (
                           <div
                             key={item.point.room}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-0.5 ${editMode ? "cursor-grab active:cursor-grabbing" : "cursor-pointer group"} ${isDragging ? "scale-125 z-20" : ""} transition-transform`}
+                            className={`absolute -translate-x-1/2 -translate-y-full z-10 flex flex-col items-center ${editMode ? "cursor-grab active:cursor-grabbing" : "cursor-pointer group"} ${isDragging ? "scale-125 z-20" : ""} transition-transform`}
                             onPointerDown={(e) => {
                               if (!editMode) return;
                               e.preventDefault();
@@ -774,14 +778,18 @@ export default function Home() {
                               });
                             }}
                           >
-                            <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center ${editMode ? "" : "group-hover:scale-125"} transition-transform`}>
-                              <span className="text-[7px] font-black text-white leading-none select-none">{visual.label.slice(0, 2)}</span>
+                            {/* Speech bubble */}
+                            <div className={`${visual.dot} rounded-lg shadow-md px-2 py-1 min-w-[46px] text-center border border-white/25 ${editMode ? "" : "group-hover:brightness-110"} transition-all select-none`}>
+                              <p className="text-[10px] font-bold text-white leading-tight whitespace-nowrap">{item.point.room}</p>
+                              <p className="text-[9px] text-white/90 font-medium leading-tight whitespace-nowrap mt-0.5">{visual.label}</p>
                             </div>
-                            <span className={`text-[8px] font-bold bg-black/70 text-white rounded px-1 py-0.5 leading-tight whitespace-nowrap shadow select-none ${editMode ? "bg-amber-700/80" : ""}`}>
-                              {item.point.room}
-                            </span>
+                            {/* Triangle pointer */}
+                            <div
+                              style={{ borderTopColor: visual.hex }}
+                              className="w-0 h-0 border-l-[5px] border-r-[5px] border-t-[7px] border-l-transparent border-r-transparent -mt-px"
+                            />
                             {editMode && (
-                              <span className="text-[7px] text-amber-200 bg-black/60 rounded px-0.5 leading-tight select-none">
+                              <span className="text-[7px] text-amber-200 bg-black/60 rounded px-0.5 leading-tight select-none mt-0.5">
                                 {pos.x},{pos.y}
                               </span>
                             )}
@@ -791,17 +799,19 @@ export default function Home() {
                     </div>
                   </div>
 
-                  {/* Dot legend */}
-                  <div className="flex flex-wrap gap-x-4 gap-y-1 px-1">
+                  {/* Legend */}
+                  <div className="flex flex-wrap gap-x-3 gap-y-1.5 px-1 items-center">
                     {[
-                      { dot: "bg-emerald-500", label: "空き・待ちなし" },
-                      { dot: "bg-amber-500", label: "少し混雑" },
-                      { dot: "bg-rose-600", label: "混雑・終了" },
-                      { dot: "bg-slate-400", label: "準備中・休止" },
-                    ].map(({ dot, label }) => (
+                      { dot: "bg-emerald-500", hex: "#10b981", label: "空き" },
+                      { dot: "bg-amber-500",   hex: "#f59e0b", label: "少し混雑" },
+                      { dot: "bg-rose-600",    hex: "#e11d48", label: "混雑" },
+                      { dot: "bg-slate-400",   hex: "#94a3b8", label: "未更新" },
+                    ].map(({ dot, hex, label }) => (
                       <span key={label} className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <span className={`inline-block w-3 h-3 rounded-full ${dot} shrink-0`} />
-                        {label}
+                        <span className="flex flex-col items-center">
+                          <span className={`${dot} rounded px-1.5 py-0.5 text-[9px] font-bold text-white leading-tight whitespace-nowrap border border-white/20`}>{label}</span>
+                          <span style={{ borderTopColor: hex }} className="w-0 h-0 border-l-[4px] border-r-[4px] border-t-[5px] border-l-transparent border-r-transparent" />
+                        </span>
                       </span>
                     ))}
                   </div>
