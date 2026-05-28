@@ -33,7 +33,9 @@ if (!basePath) {
 const replitDomain = process.env.REPLIT_DOMAINS?.split(",")[0]?.trim();
 const apiBase =
   process.env.VITE_API_BASE_URL ??
-  (replitDomain ? `https://${replitDomain}` : undefined);
+  (replitDomain && replitDomain.includes(".") 
+    ? `https://${replitDomain}` 
+    : `https://culture-festival-portal--atsuirir736.replit.app`);
 
 export default defineConfig({
   base: basePath,
