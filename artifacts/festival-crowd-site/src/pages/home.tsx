@@ -214,6 +214,7 @@ export default function Home() {
   });
   const [draggingRoom, setDraggingRoom] = useState<string | null>(null);
   const [copyMsg, setCopyMsg] = useState(false);
+  const [activeBubbleRoom, setActiveBubbleRoom] = useState<string | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -413,7 +414,10 @@ export default function Home() {
             <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white font-bold">
               祭
             </div>
-            <h1 className="font-bold text-lg tracking-tight text-foreground">学園祭リアルタイム混雑状況</h1>
+            <h1 className="font-bold text-sm sm:text-lg tracking-tight text-foreground">
+              <span className="hidden sm:inline">学園祭リアルタイム混雑状況</span>
+              <span className="sm:hidden">混雑マップ</span>
+            </h1>
           </div>
           <Button 
             variant="ghost" 
@@ -585,12 +589,12 @@ export default function Home() {
             <div className="flex items-center gap-2 flex-wrap">
               <button
                 onClick={() => setEditMode((v) => !v)}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${editMode ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-600 border-slate-300 hover:border-amber-400 hover:text-amber-600"}`}
+                className={`hidden sm:block rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${editMode ? "bg-amber-500 text-white border-amber-500" : "bg-white text-slate-600 border-slate-300 hover:border-amber-400 hover:text-amber-600"}`}
               >
                 {editMode ? "編集中 ✎" : "座標編集"}
               </button>
               <Select value={selectedFloor} onValueChange={setSelectedFloor}>
-                <SelectTrigger className="bg-background sm:w-44">
+                <SelectTrigger className="bg-background w-full sm:w-44">
                   <SelectValue placeholder="フロアを選択" />
                 </SelectTrigger>
                 <SelectContent>
@@ -621,6 +625,7 @@ export default function Home() {
               <div className="space-y-4">
                 <p className="text-sm text-muted-foreground">フロアを選択するとマップとQRコードが表示されます。</p>
                 {[
+                  { label: "1階・2階", floors: ["1階", "2階"], color: "bg-sky-50 border-sky-200" },
                   { label: "中学棟", floors: ["中学棟3階", "中学棟4階", "中学棟5階"], color: "bg-rose-50 border-rose-200" },
                   { label: "高校棟", floors: ["高校棟3階", "高校棟4階", "高校棟5階"], color: "bg-amber-50 border-amber-200" },
                   { label: "その他", floors: ["その他"], color: "bg-slate-50 border-slate-200" },
@@ -726,6 +731,7 @@ export default function Home() {
                     <div
                       ref={mapContainerRef}
                       className={`relative select-none ${editMode ? "cursor-crosshair" : ""}`}
+                      onClick={() => setActiveBubbleRoom(null)}
                     >
                       <img
                         src={imgSrc}
@@ -741,7 +747,7 @@ export default function Home() {
                           <div
                             key={item.point.room}
                             style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
-                            className={`absolute -translate-x-1/2 -translate-y-1/2 z-10 flex flex-col items-center gap-0.5 ${editMode ? "cursor-grab active:cursor-grabbing" : "cursor-pointer group"} ${isDragging ? "scale-125 z-20" : ""} transition-transform`}
+                            className={`absolute -translate-x-1/2 -translate-y-1/2 flex flex-col items-center gap-0.5 ${editMode ? "cursor-grab active:cursor-grabbing" : "cursor-pointer group"} ${isDragging ? "scale-125 z-20" : activeBubbleRoom === item.point.room ? "z-20" : "z-10"} transition-transform`}
                             onPointerDown={(e) => {
                               if (!editMode) return;
                               e.preventDefault();
@@ -751,20 +757,26 @@ export default function Home() {
                             onPointerMove={makeDotPointerMove(item.point.room)}
                             onPointerUp={() => setDraggingRoom(null)}
                             onPointerCancel={() => setDraggingRoom(null)}
-                            onClick={() => {
+                            onClick={(e) => {
                               if (editMode) return;
-                              setSelectedGroupInfo({
-                                name: item.group.name,
-                                wait: item.group.wait ?? "不明",
-                                location: item.group.location,
-                                desc: item.group.desc,
-                                room: item.point.room,
-                              });
+                              e.stopPropagation();
+                              if (activeBubbleRoom !== item.point.room) {
+                                setActiveBubbleRoom(item.point.room);
+                              } else {
+                                setActiveBubbleRoom(null);
+                                setSelectedGroupInfo({
+                                  name: item.group.name,
+                                  wait: item.group.wait ?? "不明",
+                                  location: item.group.location,
+                                  desc: item.group.desc,
+                                  room: item.point.room,
+                                });
+                              }
                             }}
                           >
-                              {/* 吹き出し (hover tooltip) */}
+                              {/* 吹き出し (hover + tap tooltip) */}
                             {!editMode && (
-                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-30">
+                              <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none transition-opacity duration-150 z-30 ${activeBubbleRoom === item.point.room ? "opacity-100" : "opacity-0 group-hover:opacity-100"}`}>
                                 <div className="relative bg-white rounded-lg shadow-xl border border-slate-200 px-2.5 py-1.5 text-center whitespace-nowrap">
                                   <p className="text-[11px] font-bold text-slate-800 leading-tight">{item.point.display}</p>
                                   <div className="flex items-center justify-center gap-1 mt-0.5">
