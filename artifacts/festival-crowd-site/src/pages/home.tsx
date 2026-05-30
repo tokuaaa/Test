@@ -90,6 +90,8 @@ const mapPoints: MapPoint[] = [
 
 const floors = [
   "すべて",
+  "1階",
+  "2階",
   "中学棟3階",
   "中学棟4階",
   "中学棟5階",
