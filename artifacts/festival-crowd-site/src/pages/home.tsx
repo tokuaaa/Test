@@ -11,14 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 
-const CIRCLED_NUMS = "①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳㉑㉒㉓㉔㉕㉖㉗㉘㉙㉚㉛㉜㉝㉞㉟㊱㊲㊳㊴㊵㊶㊷㊸㊹㊺㊻㊼㊽㊾㊿";
-const CIRCLED_ARRAY = Array.from(CIRCLED_NUMS);
 
-function getAnonymousLabel(idx: number): string {
-  if (idx < 0) return "団体";
-  if (idx < CIRCLED_ARRAY.length) return `団体${CIRCLED_ARRAY[idx]}`;
-  return `団体${idx + 1}`;
-}
 
 
 type MapPoint = {
@@ -255,27 +248,12 @@ export default function Home() {
     [favoriteKey],
   );
 
-  const anonymousIndexMap = useMemo(() => {
-    const map = new Map<string, number>();
-    if (!groupsPayload?.groups) return map;
-    [...groupsPayload.groups]
-      .sort((a, b) =>
-        a.location.localeCompare(b.location, "ja") || a.name.localeCompare(b.name, "ja"),
-      )
-      .forEach((g, idx) => {
-        map.set(`${g.name}__${g.location}`, idx);
-      });
-    return map;
-  }, [groupsPayload?.groups]);
-
   const displayName = useCallback(
     (g: { name: string; location: string } | undefined | null): string => {
       if (!g) return "";
-      const idx = anonymousIndexMap.get(`${g.name}__${g.location}`);
-      if (idx === undefined) return getAnonymousLabel(0).replace(CIRCLED_ARRAY[0], "?");
-      return getAnonymousLabel(idx);
+      return g.name;
     },
-    [anonymousIndexMap],
+    [],
   );
 
 
