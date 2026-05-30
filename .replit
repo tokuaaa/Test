@@ -38,3 +38,8 @@ externalPort = 3000
 [[ports]]
 localPort = 21826
 externalPort = 3001
+
+[userenv]
+
+[userenv.shared]
+VITE_API_BASE_URL = "https://9af4073a-3958-4d12-9e5a-f6b002593a17-8080-113sktyrro30w.janeway.replit.dev"
