@@ -762,7 +762,20 @@ export default function Home() {
                               });
                             }}
                           >
-                            <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center ${editMode ? "" : "group-hover:scale-125"} transition-transform`}>
+                              {/* 吹き出し (hover tooltip) */}
+                            {!editMode && (
+                              <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-150 z-30">
+                                <div className="relative bg-white rounded-lg shadow-xl border border-slate-200 px-2.5 py-1.5 text-center whitespace-nowrap">
+                                  <p className="text-[11px] font-bold text-slate-800 leading-tight">{item.point.display}</p>
+                                  <div className="flex items-center justify-center gap-1 mt-0.5">
+                                    <span className={`inline-block w-2 h-2 rounded-full ${visual.dot} shrink-0`} />
+                                    <p className="text-[10px] text-slate-600 leading-tight">{item.group.wait ?? "不明"}</p>
+                                  </div>
+                                  <span className="absolute top-full left-1/2 -translate-x-1/2 block w-0 h-0 border-l-[5px] border-r-[5px] border-t-[5px] border-l-transparent border-r-transparent border-t-white -mt-px" />
+                                </div>
+                              </div>
+                            )}
+                          <div className={`w-6 h-6 rounded-full ${visual.dot} ring-2 ${visual.ring} shadow-lg flex items-center justify-center ${editMode ? "" : "group-hover:scale-125"} transition-transform`}>
                               <span className="text-[7px] font-black text-white leading-none select-none">{visual.label.slice(0, 2)}</span>
                             </div>
                             <span className={`text-[8px] font-bold bg-black/70 text-white rounded px-1 py-0.5 leading-tight whitespace-nowrap shadow select-none ${editMode ? "bg-amber-700/80" : ""}`}>
