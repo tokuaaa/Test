@@ -5,18 +5,6 @@ import {
   type QueryFunction,
   type QueryKey,
 } from "@tanstack/react-query";
-import { customFetch, type ErrorType } from "../custom-fetch";
-import type {
-  HealthStatus,
-  ErrorResponse,
-  FestivalGroupsPayload,
-  FestivalSummary,
-} from "./api.schemas";
-
-export const getHealthCheckQueryKey = () => [`/api/healthz`] as const;
-
-export const healthCheck = async (): Promise<HealthStatus> =>
-  customFetch<HealthStatus>(`/api/healthz`);
 
 export const getHealthCheckQueryOptions = <
   TData = Awaited<ReturnType<typeof healthCheck>>,
@@ -79,11 +67,40 @@ export function useHealthCheck<
   };
 }
 
-export const getListFestivalGroupsUrl = () => `/api/festival/groups`;
+export const getListFestivalGroupsUrl = () =>
+  `${APPS_SCRIPT_WEBAPP_URL}?action=groups`;
 
 export const listFestivalGroups =
   async (): Promise<FestivalGroupsPayload> => {
-    return customFetch<FestivalGroupsPayload>(`/api/festival/groups`);
+    const payload = await jsonp<
+      GasGroup[] | { data?: GasGroup[]; fetchedAt?: unknown }
+    >({
+      action: "groups",
+    });
+
+    const rawGroups = Array.isArray(payload)
+      ? payload
+      : Array.isArray(payload.data)
+        ? payload.data
+        : [];
+
+    const fetchedAt = Array.isArray(payload)
+      ? null
+      : numberOrNull(payload.fetchedAt);
+
+    return {
+      fetchedAt: fetchedAt ?? Date.now(),
+
+      groups: rawGroups
+        .map(normalizeGroup)
+        .filter((group) => group.name),
+
+      source: {
+        spreadsheetId: SPREADSHEET_ID,
+        registrationFormUrl: REGISTRATION_FORM_URL,
+        updateFormUrl: UPDATE_FORM_URL,
+      },
+    };
   };
 
 export const getListFestivalGroupsQueryKey = () =>
@@ -158,7 +175,8 @@ export function useListFestivalGroups<
   };
 }
 
-export const getGetFestivalSummaryUrl = () => `/api/festival/groups`;
+export const getGetFestivalSummaryUrl = () =>
+  `${APPS_SCRIPT_WEBAPP_URL}?action=groups`;
 
 export const getFestivalSummary =
   async (): Promise<FestivalSummary> => {
